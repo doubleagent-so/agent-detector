@@ -25,6 +25,7 @@ const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
   'drive.click_dead_centre': 'geometry',
   'bio.linear_mouse_paths': 'geometry',
   'bio.smooth_synthetic_curve': 'geometry',
+  'bio.no_deceleration': 'geometry',
   'drive.zero_press_duration': 'timing',
   'drive.constant_press_duration': 'timing',
   'bio.superhuman_typing': 'timing',

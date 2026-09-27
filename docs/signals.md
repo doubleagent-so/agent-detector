@@ -4,7 +4,7 @@
 
 Every signal the engine emits, from `DEFAULT_SIGNATURES` 2026.09.4. `llr` is the natural-log likelihood ratio: positive is evidence for automation, negative is evidence for a human. Some weights are expressions evaluated at run time (for example `* soft`, which shrinks environment evidence in privacy browsers). **Hard** signals short-circuit the verdict to ≥ 0.99. See [How it works](how-it-works.md).
 
-75 codes.
+76 codes.
 
 ## A: Hard automation and agent artefacts
 
@@ -105,6 +105,7 @@ Group cap ±3.
 |---|---|---|---|---|
 | `bio.constant_key_hold` | both | `1.5` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `bio.linear_mouse_paths` | both | `2` |  | [behavior/features.ts](../src/behavior/features.ts) |
+| `bio.no_deceleration` | both | `1.5` |  | [behavior/kinematics.ts](../src/behavior/kinematics.ts) |
 | `bio.smooth_synthetic_curve` | both | `1.5` |  | [behavior/kinematics.ts](../src/behavior/kinematics.ts) |
 | `bio.superhuman_typing` | both | `2.5` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `bio.synthetic_touch` | both | `1.5` |  | [behavior/features.ts](../src/behavior/features.ts) |
