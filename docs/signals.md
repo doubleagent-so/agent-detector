@@ -4,7 +4,7 @@
 
 Every signal the engine emits, from `DEFAULT_SIGNATURES` 2026.09.4. `llr` is the natural-log likelihood ratio: positive is evidence for automation, negative is evidence for a human. Some weights are expressions evaluated at run time (for example `* soft`, which shrinks environment evidence in privacy browsers). **Hard** signals short-circuit the verdict to ≥ 0.99. See [How it works](how-it-works.md).
 
-71 codes.
+72 codes.
 
 ## A: Hard automation and agent artefacts
 
@@ -79,6 +79,7 @@ Group cap ±6.
 | `drive.page_sized_wheel` | agent | `1.5` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `drive.paste_without_shortcut` | agent | `1.8` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `drive.programmatic_scroll` | agent | `1.2` |  | [behavior/features.ts](../src/behavior/features.ts) |
+| `drive.synthetic_field_fill` | agent | `2` |  | [behavior/fields.ts](../src/behavior/fields.ts) |
 | `drive.untrusted_events` | bot | `Math.min(4, 1.5 + untrusted * 0.3)` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `drive.zero_press_duration` | both | `2` |  | [behavior/features.ts](../src/behavior/features.ts) |
 | `human.click_approach` | both | `-1` |  | [behavior/features.ts](../src/behavior/features.ts) |

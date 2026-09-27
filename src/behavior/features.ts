@@ -1,5 +1,6 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
+import { fieldFeatures } from './fields.ts';
 import { cv, mean, median, r3, std } from './stats.ts';
 
 /**
@@ -149,6 +150,10 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
     if (firstIn && !via && !touchInput && f.t - 300 > completeSince) instantFill++;
   }
   if (instantFill >= 2) add({ code: 'drive.instant_field_fill', group: 'D', target: 'agent', llr: 1.5, detail: `${instantFill} fields filled instantly on focus` });
+
+  const fields = fieldFeatures(trace, completeSince);
+  signals.push(...fields.signals);
+  Object.assign(v, fields.vector);
 
   // ---------- C: keystroke dynamics ----------
   if (keys.length >= 10) {

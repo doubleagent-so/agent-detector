@@ -24,6 +24,8 @@ const isEditable = (el: EventTarget | null): el is HTMLElement => {
 const isCardField = (el: HTMLElement): boolean =>
   /^cc-/.test(el.getAttribute('autocomplete') || '') || /card|cvc|cvv/i.test(el.getAttribute('name') || '');
 
+const fieldSlot = (el: HTMLElement): number => hashCode(`${el.tagName}|${el.id}|${el.getAttribute('name') ?? ''}`);
+
 export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: Ring; stop: () => void } {
   const ring = new Ring();
   const t0 = performance.now();
@@ -92,13 +94,27 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   });
   on(w, 'keyup', (e: KeyboardEvent) => push(e, { k: 'ku', ks: hashCode(e.code || e.key || ''), composing: e.isComposing || undefined }));
 
+  const lastBefore = new Map<number, number>();
   on(w, 'beforeinput', (e: InputEvent) => {
     const el = e.target as HTMLElement;
     const card = opts.pciLite && isEditable(el) && isCardField(el);
     const t = e.inputType || '';
     const it = e.isComposing ? 'c' : t === 'insertText' ? 't' : t === 'insertFromPaste' ? 'p' : t === 'insertReplacementText' || t === '' ? 'r'
       : t.startsWith('delete') ? 'd' : t.includes('Composition') ? 'c' : 'o';
+    if (isEditable(el)) lastBefore.set(fieldSlot(el), at(e));
     push(e, { k: 'in', it, n: card ? undefined : (e.data?.length ?? 0) });
+  });
+  on(w, 'input', (e: Event) => {
+    const el = e.target as HTMLElement;
+    if (!isEditable(el)) return;
+    const fs = fieldSlot(el), t = at(e);
+    // Typing already produced a beforeinput. Keep only script-set values and autofill.
+    if (e.isTrusted && t - (lastBefore.get(fs) ?? -1e9) < 50) return;
+    push(e, { k: 'iv', fs }, t);
+  });
+  on(w, 'change', (e: Event) => {
+    const el = e.target as HTMLElement | null;
+    if (el && (el.tagName === 'SELECT' || isEditable(el))) push(e, { k: 'ch', fs: fieldSlot(el) });
   });
   on(w, 'paste', (e: Event) => push(e, { k: 'ps' }));
   on(w, 'focusin', (e: FocusEvent) => { if (isEditable(e.target)) push(e, { k: 'fo' }); });

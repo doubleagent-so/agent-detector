@@ -10,6 +10,8 @@ export type TraceKind =
   | 'kd'  // key down
   | 'ku'  // key up
   | 'in'  // beforeinput
+  | 'iv'  // input event with no matching beforeinput (script-set or autofill)
+  | 'ch'  // change
   | 'ps'  // paste
   | 'cm'  // contextmenu
   | 'wh'  // wheel
@@ -63,6 +65,8 @@ export interface TraceEvent {
   r?: number;
   /** click detail (ck) */
   d?: number;
+  /** field slot (iv/ch): small hash of tag, id and name to tell fields apart — never the value */
+  fs?: number;
 }
 
 export class Ring {

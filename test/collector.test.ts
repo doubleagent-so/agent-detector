@@ -16,7 +16,7 @@ const last = (): TraceEvent => col.ring.events[col.ring.length - 1];
 
 beforeEach(() => {
   clock = 0;
-  document.body.innerHTML = '<input id="card" name="cardnumber"><input id="cc" autocomplete="cc-number"><input id="plain" name="email"><textarea id="ta"></textarea><div id="ce" contenteditable="true"></div><button id="b">Go</button>';
+  document.body.innerHTML = '<input id="card" name="cardnumber"><input id="cc" autocomplete="cc-number"><input id="plain" name="email"><textarea id="ta"></textarea><div id="ce" contenteditable="true"></div><button id="b">Go</button><select id="sel"><option>a</option></select>';
   col = startCollector(window, { now: () => clock });
 });
 afterEach(() => { col.stop(); vi.restoreAllMocks(); });
@@ -176,6 +176,25 @@ describe('collector', () => {
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
     ev('visibilitychange', {}, {}, document);
     expect(events().slice(-2).map((e) => e.k)).toEqual(['vh', 'vv']);
+  });
+
+  it('records script-set and autofilled values, but not typed input', () => {
+    const plain = document.getElementById('plain')!;
+    ev('input', {}, {}, plain); // new Event() is untrusted
+    expect(last()).toEqual(expect.objectContaining({ k: 'iv', u: true, fs: expect.any(Number) }));
+    const slot = last().fs;
+    ev('beforeinput', { inputType: 'insertText', data: 'a', isTrusted: true }, {}, plain);
+    ev('input', { isTrusted: true }, {}, plain); // typed: its beforeinput is 10 ms earlier
+    expect(last().k).toBe('in');
+    clock += 100;
+    ev('input', { isTrusted: true }, {}, plain); // autofill: trusted, with no beforeinput
+    expect(last()).toEqual(expect.objectContaining({ k: 'iv', fs: slot }));
+    expect(last().u).toBeUndefined();
+    ev('change', {}, {}, document.getElementById('sel')!);
+    expect(last()).toEqual(expect.objectContaining({ k: 'ch', u: true }));
+    expect(last().fs).not.toBe(slot);
+    ev('input', {}, {}, document.getElementById('b')!); // not editable
+    expect(last().k).toBe('ch');
   });
 
   it('stop() removes every listener; default clock uses performance.now', () => {
