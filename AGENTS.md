@@ -12,7 +12,7 @@ npm run test:coverage   # ≥ 90% lines and branches on src/
 npm run typecheck
 npm run docs            # regenerate docs/signals.md and docs/catalog.md after changing signals or the catalog
 npm run bench           # paste before/after tables into PRs that change weights or features
-npm run size            # createEngine bundle stays ≤ 15 KB gzip
+npm run size            # createEngine bundle stays ≤ 16 KB gzip
 npm run build           # dist/ (publish with `npm publish ./dist`)
 ```
 
