@@ -54,8 +54,10 @@ const cell = (s: string) => s.replace(/\|/g, '\\|');
 export function renderSignals(): string {
   const rows = collectSignals();
   const caps = DEFAULT_SIGNATURES.groupCaps;
+  const shadow = new Set(DEFAULT_SIGNATURES.shadow ?? []);
   let out = `${HEADER}# Signal codes\n\n`;
   out += `Every signal the engine emits, from \`DEFAULT_SIGNATURES\` ${DEFAULT_SIGNATURES.version}. \`llr\` is the natural-log likelihood ratio: positive is evidence for automation, negative is evidence for a human. Some weights are expressions evaluated at run time (for example \`* soft\`, which shrinks environment evidence in privacy browsers). **Hard** signals short-circuit the verdict to ≥ 0.99. See [How it works](how-it-works.md).\n\n`;
+  if (shadow.size) out += `Codes marked **(shadow)** are listed in \`DEFAULT_SIGNATURES.shadow\`: reported, but weighted 0 (never hard) until promoted.\n\n`;
   out += `${rows.length} codes.\n`;
   for (const g of Object.keys(GROUPS) as Group[]) {
     const inGroup = rows.filter((r) => r.group === g);
@@ -64,7 +66,7 @@ export function renderSignals(): string {
     out += '| Code | Target | llr | Hard | Defined in |\n|---|---|---|---|---|\n';
     for (const r of inGroup) {
       const files = [...r.files].map((f) => `[${f.replace(/^src\//, '')}](../${f})`).join(', ');
-      out += `| \`${r.code}\` | ${r.target} | ${[...r.llr].map((l) => `\`${cell(l)}\``).join(', ')} | ${r.hard ? 'yes' : ''} | ${files} |\n`;
+      out += `| \`${r.code}\`${shadow.has(r.code) ? ' (shadow)' : ''} | ${r.target} | ${[...r.llr].map((l) => `\`${cell(l)}\``).join(', ')} | ${r.hard ? 'yes' : ''} | ${files} |\n`;
     }
   }
   return out;
