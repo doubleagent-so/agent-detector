@@ -1,5 +1,6 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
+import { cv, mean, median, r3, std } from './stats.ts';
 
 /**
  * Behavioural feature extraction (groups D, R, C). Pure function of the trace → testable with
@@ -30,21 +31,6 @@ export interface BehaviorFeatures {
   /** Numeric feature vector (for beacon / judge / model fitting). */
   vector: Record<string, number>;
 }
-
-const mean = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
-const std = (a: number[]) => {
-  if (a.length < 2) return 0;
-  const m = mean(a);
-  return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1));
-};
-const cv = (a: number[]) => { const m = mean(a); return m > 0 ? std(a) / m : 0; };
-const median = (a: number[]) => {
-  if (!a.length) return 0;
-  const s = [...a].sort((x, y) => x - y);
-  const i = s.length >> 1;
-  return s.length % 2 ? s[i] : (s[i - 1] + s[i]) / 2;
-};
-const r3 = (x: number) => Math.round(x * 1000) / 1000;
 
 const ACTION_KINDS = new Set(['dn', 'kd', 'in', 'wh', 'ts']);
 const MICRO_KINDS = new Set(['mv', 'wh', 'sc', 'tm']);
