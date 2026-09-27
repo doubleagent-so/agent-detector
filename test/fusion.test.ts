@@ -113,6 +113,17 @@ describe('behaviour + fusion on synthetic traces', () => {
     expect(shadowed.class).toBe('human');
   });
 
+  it('shadowed verified.* signal does not short-circuit or attribute', () => {
+    const v: Signal = { code: 'verified.x', group: 'H', target: 'agent', llr: 6, hard: true, family: 'openai' };
+    const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'verified-shadow' };
+    const on = fuse({ ...base, signals: [v], sig: DEFAULT_SIGNATURES });
+    const off = fuse({ ...base, signals: [v], sig: { ...DEFAULT_SIGNATURES, shadow: ['verified.x'] } });
+    expect(on.agent).toMatchObject({ verified: true, method: 'verified.x' });
+    expect(off.agent?.verified).not.toBe(true);
+    expect(off.class).toBe('human');
+    expect(off.probability.agent).toBeLessThan(on.probability.agent);
+  });
+
   it('hard signal without shadow still short-circuits', () => {
     const hard: Signal = { code: 'auto.webdriver', group: 'A', target: 'bot', llr: 9, hard: true };
     const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'hard-no-shadow' };

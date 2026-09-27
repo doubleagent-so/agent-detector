@@ -18,6 +18,7 @@ export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number)
   for (const e of ev) {
     if ((e.k !== 'sc' && e.k !== 'se') || e.sy === undefined) continue;
     if (e.k === 'sc') { first ??= e; lastSc = e; n++; continue; }
+    // A visit's first burst has no known start position (`prev` is unset), so it is never measured.
     if (first && lastSc && prev !== undefined && (e.h ?? 0) > 0) bursts.push({ t0: first.t, t1: lastSc.t, n, d: Math.abs(e.sy - prev) / e.h! });
     prev = e.sy; first = lastSc = undefined; n = 0;
   }

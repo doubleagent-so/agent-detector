@@ -16,7 +16,7 @@ const last = (): TraceEvent => col.ring.events[col.ring.length - 1];
 
 beforeEach(() => {
   clock = 0;
-  document.body.innerHTML = '<input id="card" name="cardnumber"><input id="cc" autocomplete="cc-number"><input id="plain" name="email"><textarea id="ta"></textarea><div id="ce" contenteditable="true"></div><button id="b">Go</button><select id="sel"><option>a</option></select>';
+  document.body.innerHTML = '<input id="card" name="cardnumber"><input id="cc" autocomplete="cc-number"><input id="plain" name="email"><input id="range" type="range"><input id="chk" type="checkbox"><input id="num" type="number"><textarea id="ta"></textarea><div id="ce" contenteditable="true"></div><button id="b">Go</button><select id="sel"><option>a</option></select>';
   col = startCollector(window, { now: () => clock });
 });
 afterEach(() => { col.stop(); vi.restoreAllMocks(); });
@@ -197,6 +197,66 @@ describe('collector', () => {
     expect(last().k).toBe('ch');
   });
 
+  it('keeps the ring time-ordered when input arrives before the scroll settles', () => {
+    vi.useFakeTimers();
+    try {
+      Object.defineProperty(window, 'scrollY', { value: 900, configurable: true });
+      ev('scroll', {}, {}, document);
+      ev('pointerdown', { clientX: 1, clientY: 1, pointerType: 'mouse' }); // within the 150 ms settle window
+      vi.advanceTimersByTime(200);
+      expect(last().k).toBe('se');
+      const ts = events().map((e) => e.t);
+      expect(ts).toEqual([...ts].sort((a, b) => a - b));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records field changes without typing for text-like fields only', () => {
+    for (const id of ['range', 'chk']) {
+      const n = col.ring.length;
+      ev('input', {}, {}, document.getElementById(id)!);
+      ev('input', { isTrusted: true }, {}, document.getElementById(id)!);
+      expect(col.ring.length, id).toBe(n);
+    }
+    for (const id of ['num', 'ta', 'ce']) {
+      ev('input', {}, {}, document.getElementById(id)!);
+      expect(last().k, id).toBe('iv');
+    }
+  });
+
+  it('collapses trusted autofill on one field to one event per second; untrusted stays', () => {
+    const plain = document.getElementById('plain')!;
+    const ivs = () => events().filter((e) => e.k === 'iv');
+    ev('input', { isTrusted: true }, {}, plain);
+    clock += 100;
+    ev('input', { isTrusted: true }, {}, plain);
+    expect(ivs()).toHaveLength(1);
+    ev('input', { isTrusted: true }, {}, document.getElementById('ta')!); // another field is not collapsed
+    expect(ivs()).toHaveLength(2);
+    clock += 1000;
+    ev('input', { isTrusted: true }, {}, plain);
+    expect(ivs()).toHaveLength(3);
+    ev('input', {}, {}, plain);
+    ev('input', {}, {}, plain);
+    expect(ivs()).toHaveLength(5);
+  });
+
+  it('PCI-lite drops field slots on card fields', () => {
+    col.stop();
+    col = startCollector(window, { now: () => clock, pciLite: true });
+    for (const id of ['card', 'cc']) {
+      ev('input', {}, {}, document.getElementById(id)!);
+      expect(last(), id).toMatchObject({ k: 'iv' });
+      expect(last().fs, id).toBeUndefined();
+      ev('change', {}, {}, document.getElementById(id)!);
+      expect(last(), id).toMatchObject({ k: 'ch' });
+      expect(last().fs, id).toBeUndefined();
+    }
+    ev('input', {}, {}, document.getElementById('plain')!);
+    expect(last().fs).toEqual(expect.any(Number));
+  });
+
   it('stop() removes every listener; default clock uses performance.now', () => {
     col.stop();
     const n = col.ring.length;
@@ -216,9 +276,9 @@ describe('collector', () => {
       expect(last()).toEqual(expect.objectContaining({ k: 'sc', sy: 1200, h: window.innerHeight }));
       Object.defineProperty(window, 'scrollY', { value: 1500, configurable: true });
       ev('scroll', {}, {}, document); // within 50 ms throttle: not pushed
-      const scrollAt = clock - 10;
       vi.advanceTimersByTime(200);
-      expect(last()).toEqual(expect.objectContaining({ k: 'se', sy: 1500, t: scrollAt }));
+      // Stamped when the timer fires, not at the last scroll, so the ring stays time-ordered.
+      expect(last()).toEqual(expect.objectContaining({ k: 'se', sy: 1500, t: clock }));
       clock += 100; // past the 50 ms throttle
       ev('scroll', {}, {}, document.getElementById('ta')!);
       vi.advanceTimersByTime(200);
