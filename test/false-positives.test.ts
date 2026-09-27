@@ -5,7 +5,7 @@ import { fuse } from '../src/fusion.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
 import { SOFT_SIGNAL_REVISIONS } from '../src/evidence.ts';
 import type { Profile, Signal } from '../src/types.ts';
-import { aiAgent, humanDesktop, scriptedBot } from './traces.ts';
+import { aiAgent, humanDesktop, humanMobile, scriptedBot } from './traces.ts';
 
 const score = (events: readonly TraceEvent[], extra: Signal[] = [], profile: Profile = 'generic') => {
   const b = extractBehavior(events, 30000);
@@ -166,5 +166,44 @@ describe('human false-positive regression scenarios', () => {
     ]);
     expect(extractBehavior(events, 30000).signals.map(s => s.code)).not.toContain('drive.zero_press_duration');
     expect(score(events, software).class).toBe('human');
+  });
+});
+
+const NEW_CODES = ['drive.synthetic_field_fill', 'drive.scroll_jump', 'drive.uniform_scroll_bursts', 'bio.smooth_synthetic_curve', 'bio.no_deceleration'];
+const newCodes = (ev: TraceEvent[], now = 30000, since = 0) => extractBehavior(ev, now, since).signals.map((s) => s.code).filter((c) => NEW_CODES.includes(c));
+
+describe('FP-Agent / BeCAPTCHA detectors: human false-positive regressions', () => {
+  it('stay silent on 50 seeds of synthetic desktop and mobile humans', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      expect(newCodes(humanDesktop(seed))).toEqual([]);
+      expect(newCodes(humanMobile(seed))).toEqual([]);
+    }
+  });
+  it('input mask reformatting while typing', () => {
+    const ev: TraceEvent[] = [2000, 2150, 2300, 2450, 2600].flatMap((t, i) => [
+      { k: 'kd', t, ks: i }, { k: 'in', t: t + 1, it: 't', n: 1 }, { k: 'iv', t: t + 2, fs: 1, u: true }, { k: 'iv', t: t + 3, fs: 2, u: true },
+    ]);
+    expect(newCodes(ev)).toEqual([]);
+  });
+  it('date picker and dependent-field scripts after clicks', () => {
+    const ev: TraceEvent[] = [3000, 6000, 9000].flatMap((t, i) => [{ k: 'dn', t, pt: 'm' }, { k: 'ch', t: t + 200, fs: 10 + i, u: true }]);
+    expect(newCodes(ev)).toEqual([]);
+  });
+  it('page-load prefill and scroll restoration', () => {
+    const ev: TraceEvent[] = [
+      { k: 'iv', t: 100, fs: 1, u: true }, { k: 'iv', t: 120, fs: 2, u: true },
+      { k: 'sc', t: 50, sy: 0, h: 800 }, { k: 'se', t: 50, sy: 0, h: 800 },
+      { k: 'sc', t: 200, sy: 2400, h: 800 }, { k: 'se', t: 200, sy: 2400, h: 800 },
+      { k: 'sc', t: 400, sy: 4800, h: 800 }, { k: 'se', t: 400, sy: 4800, h: 800 },
+    ];
+    expect(newCodes(ev)).toEqual([]);
+  });
+  it('anchor-link navigation and End key', () => {
+    const ev: TraceEvent[] = [
+      { k: 'sc', t: 1200, sy: 0, h: 800 }, { k: 'se', t: 1200, sy: 0, h: 800 },
+      { k: 'dn', t: 3000, pt: 'm' }, { k: 'sc', t: 3100, sy: 2400, h: 800 }, { k: 'se', t: 3100, sy: 2400, h: 800 },
+      { k: 'kd', t: 6000, sp: 'n' }, { k: 'sc', t: 6050, sy: 9000, h: 800 }, { k: 'se', t: 6050, sy: 9000, h: 800 },
+    ];
+    expect(newCodes(ev)).toEqual([]);
   });
 });
