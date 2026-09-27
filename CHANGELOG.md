@@ -5,7 +5,7 @@ separately whenever weights or rules change.
 
 ## 0.2.0 (2026-09-27)
 
-FP-Agent and BeCAPTCHA behavioural signals (shadowed, unlisted). Signatures `2026.09.5`.
+FP-Agent and BeCAPTCHA behavioural signals (shadowed: reported, weighted 0 until promoted). Signatures `2026.09.5`.
 
 - Five new signal codes (all shadowed): `drive.synthetic_field_fill`, `drive.scroll_jump`, `drive.uniform_scroll_bursts`,
   `bio.smooth_synthetic_curve`, `bio.no_deceleration`. These are reported in beacons but carry `llr: 0` and `hard: false`.
