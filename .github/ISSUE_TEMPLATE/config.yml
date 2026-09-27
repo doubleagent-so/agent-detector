@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security or evasion report
+    url: https://github.com/doubleagent-so/core/blob/main/SECURITY.md
+    about: Report evasions privately, not in a public issue.

@@ -1,0 +1,19 @@
+name: Misclassification
+description: A session was labelled human, bot or agent wrongly.
+labels: [misclassification]
+body:
+  - type: input
+    id: client
+    attributes: { label: Browser, agent or tool (with version), placeholder: 'Chrome 141 on macOS 15 / Claude in Chrome 1.4 / Playwright 1.63' }
+    validations: { required: true }
+  - type: dropdown
+    id: expected
+    attributes: { label: Expected class, options: [human, bot, agent] }
+    validations: { required: true }
+  - type: textarea
+    id: verdict
+    attributes: { label: Verdict, description: 'Paste `class`, `probability`, `agent` and `reasons` from the verdict. Remove anything private.', render: json }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: How to reproduce }
