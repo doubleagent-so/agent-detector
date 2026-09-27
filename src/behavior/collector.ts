@@ -122,11 +122,10 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   on(w, 'wheel', (e: WheelEvent) => push(e, { k: 'wh', dy: Math.round(e.deltaY * 100) / 100, dm: e.deltaMode }));
   let lastScroll = -1e9, lastDocScroll = 0;
   let settle: ReturnType<typeof setTimeout> | undefined;
-  const isDocScroll = (e: Event) => e.target === doc || e.target === doc.documentElement || e.target === w;
   const scrollPos = () => ({ sy: Math.round(w.scrollY), h: w.innerHeight });
   on(w, 'scroll', (e: Event) => {
     const t = at(e);
-    const docScroll = isDocScroll(e);
+    const docScroll = e.target === doc || e.target === doc.documentElement || e.target === w;
     if (t - lastScroll > 50) { lastScroll = t; push(e, { k: 'sc', ...(docScroll ? scrollPos() : {}) }, t); } // throttle
     if (!docScroll) return;
     lastDocScroll = t;
