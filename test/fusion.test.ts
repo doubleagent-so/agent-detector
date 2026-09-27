@@ -92,4 +92,14 @@ describe('behaviour + fusion on synthetic traces', () => {
     const ci = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.CI; // core has no Node types
     expect(best).toBeLessThan(ci ? 90 : 30);
   });
+
+  it('weights shadow codes at zero without hiding other evidence', () => {
+    const s: Signal = { code: 'drive.click_without_approach', group: 'D', target: 'agent', llr: 2.5 };
+    const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'shadow' };
+    const on = fuse({ ...base, signals: [s], sig: DEFAULT_SIGNATURES });
+    const off = fuse({ ...base, signals: [s], sig: { ...DEFAULT_SIGNATURES, shadow: ['drive.click_without_approach'] } });
+    expect(off.probability.agent).toBeLessThan(on.probability.agent);
+    expect(off.reasons.map((r) => r.code)).not.toContain('drive.click_without_approach');
+    expect(DEFAULT_SIGNATURES.shadow).toEqual(expect.any(Array));
+  });
 });

@@ -38,7 +38,8 @@ const sigm = (x: number) => 1 / (1 + Math.exp(-x));
 
 export function fuse(inp: FuseInput): Verdict {
   const { sig } = inp;
-  const signals = inp.signals.map(normalizeSoftSignal);
+  const shadow = new Set(inp.sig.shadow ?? []);
+  const signals = inp.signals.map(normalizeSoftSignal).map((s) => (shadow.has(s.code) ? { ...s, llr: 0 } : s));
   const prior = inp.sitePrior ?? sig.priors[inp.profile] ?? sig.priors.generic;
   const boost = (sig.actionPriorBoost[inp.action] ?? 1) * (inp.attackMode ? 3 : 1);
   const pH = Math.max(0.01, 1 - prior.bot - prior.agent);

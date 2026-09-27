@@ -102,6 +102,8 @@ export interface Signatures {
   /** Fraction of confident-human sessions that send a beacon (aggregates reweighted by 1/rate). */
   /** Ambiguity band for escalation to the judge. */
   judgeBand: [number, number];
+  /** Codes still being measured: reported in beacons, weighted 0 in fusion until promoted. */
+  shadow?: readonly string[];
 }
 
 export interface MarkerRule {
