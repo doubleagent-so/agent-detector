@@ -1,6 +1,7 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
 import { fieldFeatures } from './fields.ts';
+import { curvatureFeatures, perpDeviation, points, segmentMoves } from './kinematics.ts';
 import { scrollFeatures } from './scroll.ts';
 import { cv, mean, median, r3, std } from './stats.ts';
 
@@ -179,7 +180,12 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   }
 
   // ---------- C: mouse kinematics ----------
-  const segs = segmentMoves(moves.filter((m) => m.pt === 'm'));
+  const mouse = moves.filter((m) => m.pt === 'm');
+  const segs = segmentMoves(mouse);
+  const runs = segmentMoves(mouse, 250, 3).map(points);
+  const curvature = curvatureFeatures(runs);
+  signals.push(...curvature.signals);
+  Object.assign(v, curvature.vector);
   if (segs.length >= 3) {
     const straight: number[] = [];
     const jitter: number[] = [];
@@ -281,27 +287,4 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   }
 
   return { stats, signals, vector: v };
-}
-
-/** Split mouse moves into segments at pauses > 150ms. */
-function segmentMoves(moves: TraceEvent[]): TraceEvent[][] {
-  const out: TraceEvent[][] = [];
-  let cur: TraceEvent[] = [];
-  for (const m of moves) {
-    if (m.x === undefined) continue;
-    if (cur.length && m.t - cur[cur.length - 1].t > 150) { if (cur.length >= 5) out.push(cur); cur = []; }
-    cur.push(m);
-  }
-  if (cur.length >= 5) out.push(cur);
-  return out;
-}
-
-/** Mean perpendicular deviation (px) of points from the segment chord. */
-function perpDeviation(s: TraceEvent[]): number {
-  const a = s[0], b = s[s.length - 1];
-  const dx = b.x! - a.x!, dy = b.y! - a.y!;
-  const len = Math.hypot(dx, dy) || 1;
-  let sum = 0;
-  for (const p of s) sum += Math.abs(dy * (p.x! - a.x!) - dx * (p.y! - a.y!)) / len;
-  return sum / s.length;
 }
