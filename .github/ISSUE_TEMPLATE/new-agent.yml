@@ -1,0 +1,15 @@
+name: New agent or bot
+description: Add a crawler, AI agent, automation tool or browser agent to the catalog.
+labels: [catalog]
+body:
+  - type: input
+    id: name
+    attributes: { label: Name and operator, placeholder: 'ExampleBot by Example Inc.' }
+    validations: { required: true }
+  - type: input
+    id: source
+    attributes: { label: Operator documentation (URL), description: The public page that documents its User-Agent, IP list or signing keys. }
+    validations: { required: true }
+  - type: textarea
+    id: identify
+    attributes: { label: How to identify it, description: 'User-Agent tokens, IP list URL, Web Bot Auth host, DOM markers or window globals.' }
