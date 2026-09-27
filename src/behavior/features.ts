@@ -1,7 +1,7 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
 import { fieldFeatures } from './fields.ts';
-import { curvatureFeatures, perpDeviation, points, segmentMoves } from './kinematics.ts';
+import { curvatureFeatures, perpDeviation, points, segmentMoves, velocityFeatures } from './kinematics.ts';
 import { scrollFeatures } from './scroll.ts';
 import { cv, mean, median, r3, std } from './stats.ts';
 
@@ -186,6 +186,11 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   const curvature = curvatureFeatures(runs);
   signals.push(...curvature.signals);
   Object.assign(v, curvature.vector);
+  if (runs.length) {
+    const velocity = velocityFeatures(runs);
+    signals.push(...velocity.signals);
+    Object.assign(v, velocity.vector);
+  }
   if (segs.length >= 3) {
     const straight: number[] = [];
     const jitter: number[] = [];

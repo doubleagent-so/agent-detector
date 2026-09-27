@@ -113,3 +113,40 @@ export function curvatureFeatures(runs: readonly Pt[][]): { signals: Signal[]; v
   if (curved >= 4 && smooth / curved >= 0.8) signals.push({ code: 'bio.smooth_synthetic_curve', group: 'C', target: 'both', llr: 1.5, detail: `${smooth}/${curved} curved paths with no micro-corrections` });
   return { signals, vector };
 }
+
+/**
+ * Speed-curve shape (BeCAPTCHA-Mouse §3.1): people speed up, then slow down and fine-correct near the target.
+ * Constant or accelerate-only speed is a generated trajectory.
+ */
+export function velocityFeatures(runs: readonly Pt[][]): { signals: Signal[]; vector: Record<string, number> } {
+  const signals: Signal[] = [];
+  const peakPos: number[] = [], endRatio: number[] = [], peaks: number[] = [];
+  for (const p of runs) {
+    const dur = p.length ? p[p.length - 1].t - p[0].t : 0;
+    if (p.length < 10 || dur < 100 || pathLength(p) < 150) continue;
+    const raw: number[] = [], mid: number[] = [];
+    for (let i = 1; i < p.length; i++) {
+      const dt = p[i].t - p[i - 1].t;
+      if (dt <= 0) continue;
+      raw.push(Math.hypot(p[i].x - p[i - 1].x, p[i].y - p[i - 1].y) / dt);
+      mid.push((p[i].t + p[i - 1].t) / 2);
+    }
+    if (raw.length < 8) continue;
+    const v = raw.map((_, i) => mean(raw.slice(Math.max(0, i - 1), i + 2)));
+    const peak = Math.max(...v);
+    if (peak <= 0) continue;
+    peakPos.push((mid[v.indexOf(peak)] - p[0].t) / dur);
+    endRatio.push(mean(v.slice(Math.floor(v.length * 0.8))) / peak);
+    peaks.push(v.filter((x, i) => i > 0 && i < v.length - 1 && x > v[i - 1] && x >= v[i + 1] && x >= 0.3 * peak).length);
+  }
+  if (!peakPos.length) return { signals, vector: { vel_segments: 0 } };
+  const vector = {
+    vel_segments: peakPos.length,
+    vel_peak_pos: r3(median(peakPos)),
+    vel_end_ratio: r3(median(endRatio)),
+    vel_peaks: median(peaks),
+  };
+  const flat = endRatio.filter((r) => r > 0.6).length;
+  if (endRatio.length >= 3 && flat / endRatio.length >= 0.8) signals.push({ code: 'bio.no_deceleration', group: 'C', target: 'both', llr: 1.5, detail: `${flat}/${endRatio.length} movements with no slow-down before stopping` });
+  return { signals, vector };
+}
