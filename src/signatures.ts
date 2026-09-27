@@ -61,5 +61,5 @@ export const DEFAULT_SIGNATURES: Signatures = {
   globals: globalRules(),
   policies,
   judgeBand: [0.25, 0.75],
-  shadow: [],
+  shadow: ['drive.synthetic_field_fill'],
 };

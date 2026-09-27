@@ -32,6 +32,7 @@ const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
   'bio.burst_dispatched_moves': 'timing',
   'drive.insert_text_without_keys': 'text',
   'drive.instant_field_fill': 'text',
+  'drive.synthetic_field_fill': 'text',
   'drive.cdp_screen_coords': 'coordinates',
 };
 export function hasAutomationEvidence(signals: readonly Signal[], reliability: Record<Group, number>): boolean {
