@@ -2,7 +2,7 @@ import { Ring, type TraceEvent } from './trace.ts';
 
 /**
  * Passive, capture-phase listeners. All handlers are O(1) and passive; nothing reads input values.
- * `pciLite` stops listening to editable content inside payment forms beyond focus timing.
+ * `pciLite` keeps only timing for card fields: no input lengths and no field slots.
  */
 export interface CollectorOptions {
   pciLite?: boolean;
@@ -20,6 +20,11 @@ const isEditable = (el: EventTarget | null): el is HTMLElement => {
   if (!e || !e.tagName) return false;
   return e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.isContentEditable === true;
 };
+
+// Inputs whose value is typed text. Sliders, checkboxes and pickers fire `input` with no `beforeinput`.
+const TEXT_TYPES = /^(|text|email|search|tel|url|password|number)$/;
+const isTextField = (el: EventTarget | null): el is HTMLElement =>
+  isEditable(el) && (el.tagName !== 'INPUT' || TEXT_TYPES.test((el as HTMLInputElement).type ?? ''));
 
 const isCardField = (el: HTMLElement): boolean =>
   /^cc-/.test(el.getAttribute('autocomplete') || '') || /card|cvc|cvv/i.test(el.getAttribute('name') || '');
@@ -94,7 +99,8 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   });
   on(w, 'keyup', (e: KeyboardEvent) => push(e, { k: 'ku', ks: hashCode(e.code || e.key || ''), composing: e.isComposing || undefined }));
 
-  const lastBefore = new Map<number, number>();
+  const lastBefore = new Map<number, number>(), lastFill = new Map<number, number>();
+  const slot = (el: HTMLElement) => (opts.pciLite && isCardField(el) ? undefined : fieldSlot(el));
   on(w, 'beforeinput', (e: InputEvent) => {
     const el = e.target as HTMLElement;
     const card = opts.pciLite && isEditable(el) && isCardField(el);
@@ -106,21 +112,25 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   });
   on(w, 'input', (e: Event) => {
     const el = e.target as HTMLElement;
-    if (!isEditable(el)) return;
+    if (!isTextField(el)) return;
     const fs = fieldSlot(el), t = at(e);
-    // Typing already produced a beforeinput. Keep only script-set values and autofill.
-    if (e.isTrusted && t - (lastBefore.get(fs) ?? -1e9) < 50) return;
-    push(e, { k: 'iv', fs }, t);
+    if (e.isTrusted) {
+      // Typing already produced a beforeinput. Keep only script-set values and autofill, at most one
+      // trusted event per field per second. Untrusted ones are the evidence and all stay.
+      if (t - (lastBefore.get(fs) ?? -1e9) < 50 || t - (lastFill.get(fs) ?? -1e9) < 1000) return;
+      lastFill.set(fs, t);
+    }
+    push(e, { k: 'iv', fs: slot(el) }, t);
   });
   on(w, 'change', (e: Event) => {
     const el = e.target as HTMLElement | null;
-    if (el && (el.tagName === 'SELECT' || isEditable(el))) push(e, { k: 'ch', fs: fieldSlot(el) });
+    if (el && (el.tagName === 'SELECT' || isEditable(el))) push(e, { k: 'ch', fs: slot(el) });
   });
   on(w, 'paste', (e: Event) => push(e, { k: 'ps' }));
   on(w, 'focusin', (e: FocusEvent) => { if (isEditable(e.target)) push(e, { k: 'fo' }); });
 
   on(w, 'wheel', (e: WheelEvent) => push(e, { k: 'wh', dy: Math.round(e.deltaY * 100) / 100, dm: e.deltaMode }));
-  let lastScroll = -1e9, lastDocScroll = 0;
+  let lastScroll = -1e9;
   let settle: ReturnType<typeof setTimeout> | undefined;
   const scrollPos = () => ({ sy: Math.round(w.scrollY), h: w.innerHeight });
   on(w, 'scroll', (e: Event) => {
@@ -128,10 +138,10 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
     const docScroll = e.target === doc || e.target === doc.documentElement || e.target === w;
     if (t - lastScroll > 50) { lastScroll = t; push(e, { k: 'sc', ...(docScroll ? scrollPos() : {}) }, t); } // throttle
     if (!docScroll) return;
-    lastDocScroll = t;
     // The throttle drops a burst's final position; record it once scrolling settles.
     clearTimeout(settle);
-    settle = setTimeout(() => ring.push({ k: 'se', t: lastDocScroll, ...scrollPos() }), 150);
+    // Stamp it when it fires: input pushed meanwhile has a later `t`, and the ring must stay time-ordered.
+    settle = setTimeout(() => ring.push({ k: 'se', t: now(), ...scrollPos() }), 150);
   });
 
   on(w, 'touchstart', (e: TouchEvent) => {

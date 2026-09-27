@@ -13,7 +13,9 @@ export function timeline(ev: readonly TraceEvent[], maxLines = 60): string[] {
   const flushKeys = () => {
     if (pendingKeys) { lines.push(`t+${s(keyStart)} typed ${pendingKeys} keys`); pendingKeys = 0; }
   };
-  for (const e of ev) {
+  // Collector timestamps can arrive slightly out of order (delayed dispatch); the server rejects a timeline
+  // that goes back in time. A stable sort keeps every event, unlike skipping the late ones.
+  for (const e of [...ev].sort((a, b) => a.t - b.t)) {
     if (e.k === 'mv' || e.k === 'tm') { movesSince++; continue; }
     if (e.k === 'kd' && !e.sp) { if (!pendingKeys) keyStart = e.t; pendingKeys++; continue; }
     if (e.k === 'se' || e.k === 'iv') {
