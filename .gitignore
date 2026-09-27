@@ -2,3 +2,4 @@ node_modules
 dist
 coverage
 *.tgz
+examples/browser/main.js
