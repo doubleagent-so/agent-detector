@@ -39,7 +39,7 @@ const sigm = (x: number) => 1 / (1 + Math.exp(-x));
 export function fuse(inp: FuseInput): Verdict {
   const { sig } = inp;
   const shadow = new Set(inp.sig.shadow ?? []);
-  const signals = inp.signals.map(normalizeSoftSignal).map((s) => (shadow.has(s.code) ? { ...s, llr: 0 } : s));
+  const signals = inp.signals.map(normalizeSoftSignal).map((s) => (shadow.has(s.code) ? { ...s, llr: 0, hard: false } : s));
   const prior = inp.sitePrior ?? sig.priors[inp.profile] ?? sig.priors.generic;
   const boost = (sig.actionPriorBoost[inp.action] ?? 1) * (inp.attackMode ? 3 : 1);
   const pH = Math.max(0.01, 1 - prior.bot - prior.agent);
@@ -76,7 +76,7 @@ export function fuse(inp: FuseInput): Verdict {
   let probability = softmax({ human: 0, bot: L.bot, agent: L.agent });
 
   // Hard evidence short-circuit.
-  const verified = signals.find((s) => s.group === 'H' && s.code.startsWith('verified.'));
+  const verified = signals.find((s) => s.group === 'H' && s.code.startsWith('verified.') && !shadow.has(s.code));
   const hard = verified ? [verified] : signals.filter((s) => s.hard);
   const attributed = signals.find((s) => (s.family || s.agentId) && s.llr > 0);
   let family: AgentFamily | undefined = attributed?.family;
