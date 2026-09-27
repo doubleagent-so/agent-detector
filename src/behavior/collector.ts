@@ -120,10 +120,19 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   on(w, 'focusin', (e: FocusEvent) => { if (isEditable(e.target)) push(e, { k: 'fo' }); });
 
   on(w, 'wheel', (e: WheelEvent) => push(e, { k: 'wh', dy: Math.round(e.deltaY * 100) / 100, dm: e.deltaMode }));
-  let lastScroll = -1e9;
+  let lastScroll = -1e9, lastDocScroll = 0;
+  let settle: ReturnType<typeof setTimeout> | undefined;
+  const isDocScroll = (e: Event) => e.target === doc || e.target === doc.documentElement || e.target === w;
+  const scrollPos = () => ({ sy: Math.round(w.scrollY), h: w.innerHeight });
   on(w, 'scroll', (e: Event) => {
     const t = at(e);
-    if (t - lastScroll > 50) { lastScroll = t; push(e, { k: 'sc' }, t); } // throttle
+    const docScroll = isDocScroll(e);
+    if (t - lastScroll > 50) { lastScroll = t; push(e, { k: 'sc', ...(docScroll ? scrollPos() : {}) }, t); } // throttle
+    if (!docScroll) return;
+    lastDocScroll = t;
+    // The throttle drops a burst's final position; record it once scrolling settles.
+    clearTimeout(settle);
+    settle = setTimeout(() => ring.push({ k: 'se', t: lastDocScroll, ...scrollPos() }), 150);
   });
 
   on(w, 'touchstart', (e: TouchEvent) => {
@@ -135,5 +144,5 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
 
   on(doc, 'visibilitychange', (e: Event) => push(e, { k: doc.visibilityState === 'hidden' ? 'vh' : 'vv' }));
 
-  return { ring, stop: () => off.forEach((f) => f()) };
+  return { ring, stop: () => { clearTimeout(settle); off.forEach((f) => f()); } };
 }

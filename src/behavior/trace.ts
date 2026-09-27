@@ -16,6 +16,7 @@ export type TraceKind =
   | 'cm'  // contextmenu
   | 'wh'  // wheel
   | 'sc'  // scroll
+  | 'se'  // document scroll settled (trailing, 150 ms)
   | 'fo'  // focus into an editable
   | 'ts'  // touch start
   | 'te'  // touch end
@@ -67,6 +68,8 @@ export interface TraceEvent {
   d?: number;
   /** field slot (iv/ch): small hash of tag, id and name to tell fields apart — never the value */
   fs?: number;
+  /** document scrollY in px (sc/se); `h` carries the viewport height on the same events */
+  sy?: number;
 }
 
 export class Ring {

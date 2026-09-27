@@ -207,6 +207,32 @@ describe('collector', () => {
     expect(c2.ring.events[0].t).toBeGreaterThanOrEqual(0);
     c2.stop();
   });
+
+  it('records document scroll position and a trailing settle event', () => {
+    vi.useFakeTimers();
+    try {
+      Object.defineProperty(window, 'scrollY', { value: 1200, configurable: true });
+      ev('scroll', {}, {}, document);
+      expect(last()).toEqual(expect.objectContaining({ k: 'sc', sy: 1200, h: window.innerHeight }));
+      Object.defineProperty(window, 'scrollY', { value: 1500, configurable: true });
+      ev('scroll', {}, {}, document); // within 50 ms throttle: not pushed
+      const scrollAt = clock - 10;
+      vi.advanceTimersByTime(200);
+      expect(last()).toEqual(expect.objectContaining({ k: 'se', sy: 1500, t: scrollAt }));
+      clock += 100; // past the 50 ms throttle
+      ev('scroll', {}, {}, document.getElementById('ta')!);
+      vi.advanceTimersByTime(200);
+      expect(last().k).toBe('sc'); // element scroll: no position, no settle event
+      expect(last().sy).toBeUndefined();
+      ev('scroll', {}, {}, document);
+      col.stop();
+      const n = col.ring.length;
+      vi.advanceTimersByTime(200);
+      expect(col.ring.length).toBe(n); // stop() cancels the pending settle event
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('Ring', () => {
