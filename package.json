@@ -29,7 +29,9 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
     "bench": "node bench/run.ts",
-    "size": "node scripts/size.mjs"
+    "size": "node scripts/size.mjs",
+    "docs": "node scripts/docs.ts",
+    "example": "node scripts/example.mjs"
   },
   "engines": {
     "node": ">=22.18"

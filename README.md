@@ -1,11 +1,22 @@
 # @doubleagent-so/core
 
-The detection engine behind **Double Agent**. It classifies a browser session as **human**, **bot** or **AI agent**
-(Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely inside the page.
-It has no dependencies and makes no network requests. You decide what to do with the verdict.
+[![CI](https://github.com/doubleagent-so/core/actions/workflows/ci.yml/badge.svg)](https://github.com/doubleagent-so/core/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Types](https://img.shields.io/badge/types-included-3178c6.svg)](src/types.ts)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
+[![Size](https://img.shields.io/badge/engine-%E2%89%A415%20KB%20gzip-brightgreen.svg)](scripts/size.mjs)
+[![Catalog](https://img.shields.io/badge/catalog-226%20bots%20%26%20agents-8a2be2.svg)](docs/catalog.md)
 
-Use it directly when you want the raw engine. For a drop-in script with analytics and ads integrations, use
-[`@doubleagent-so/js`](https://doubleagent.so/docs/script-tag/).
+The detection engine behind **[Double Agent](https://doubleagent.so)**. It classifies a browser session as **human**,
+**bot** or **AI agent** (Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely
+inside the page. No dependencies, no network requests: you decide what to do with the verdict.
+
+**[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
+**[API](docs/api.md)** · **[Extending](docs/extending.md)** · **[Signals](docs/signals.md)** · **[Catalog](docs/catalog.md)** ·
+**[Contributing](CONTRIBUTING.md)**
+
+Use it directly when you want the raw engine. For a drop-in script with analytics and ads integrations and plugins,
+use [`@doubleagent-so/js`](https://doubleagent.so/docs/script-tag/).
 
 ## Install
 
@@ -47,43 +58,37 @@ matchUserAgent('Mozilla/5.0 … ChatGPT-User/1.0; +https://openai.com/bot')?.ent
 
 ## How it works
 
-1. **Signals.** Probes in `src/env` (environment, automation artefacts, DOM markers and window globals left by agents)
-   and `src/behavior` (input driving, rhythm, biometrics) emit `Signal`s. Each signal has a stable `code`, a `group`
-   and a natural-log likelihood ratio (`llr`): positive is evidence for automation, negative is evidence for a human.
-   Missing data emits nothing, because missing is not negative.
-2. **Fusion** (`src/fusion.ts`). Per-profile priors plus the capped sum of each group's log-odds, then a softmax over
-   human, bot and agent. Correlated signals share a group, and the group cap stops them double counting. Behavioural
-   groups are scaled by how much interaction was observed. Hard evidence short-circuits to ≥ 0.99.
-3. **Policy.** The class probability and the action (`login`, `checkout`, …) map to a recommendation using
-   `DEFAULT_SIGNATURES.policies`.
-4. **Catalog** (`src/catalog`). Every named bot and agent, with its User-Agent tokens, published IP lists, Web Bot
-   Auth hosts and DOM fingerprints. Each entry cites its source.
+Probes and input events become **signals**, each a log-likelihood ratio in a capped **group**. **Fusion** adds them to
+per-profile priors and softmaxes over human, bot and agent. A **policy** maps the result and the action to a
+recommendation. Every weight lives in one versioned object, `DEFAULT_SIGNATURES`. Details:
+[How it works](docs/how-it-works.md).
 
-Weights, priors, caps and marker rules live in one versioned object, `DEFAULT_SIGNATURES` (`src/signatures.ts`). Its
-`version` goes out as `sigv` in `engine.payload()`, so a server can tell which model scored a session. Pass your own
-`signatures` to `createEngine` to experiment.
+`engine.payload()` is a compact JSON summary you can send to your own backend. Re-score it there with evidence the
+client cannot forge: [examples/server.ts](examples/server.ts).
 
-`engine.payload()` returns a compact JSON summary (signals, features, stats, a short behaviour timeline). You can
-send it to your own backend. Double Agent's cloud uses it to re-score sessions with server-side evidence, and never
-trusts the client's verdict.
+## Try it
+
+```sh
+git clone https://github.com/doubleagent-so/core && cd core && npm ci
+npm run example     # live verdict at http://127.0.0.1:8123 — try a real browser, a headless one and an agent
+npm run bench       # confusion matrix on labelled synthetic sessions
+```
 
 ## Contributing
 
-Improvements to detection are welcome: new agents in the catalog, new probes, better weights and fewer false
-positives.
+Detection gets better with more eyes. Good places to start:
 
-- **Test first.** Every signal needs a test showing when it fires and when it does not. Coverage stays at or above 90%
-  for lines and branches.
-- **False positives are the worst bug.** `test/false-positives.test.ts` must stay green. Add a case whenever you
-  find a real browser that was misread.
-- **Catalog entries** need a public source (the operator's own documentation) in `source`.
-- **New signal codes** use the existing `group.name` form (`env.webgl_software`). A new code is ignored by Double
-  Agent's cloud until it is added to the server's allow-list, so say so in the pull request.
-- **Public API.** `test/public-api.test.ts` lists every export. Removing or renaming one is a breaking change.
+- **Report a misread session**: a real browser labelled automated, or an agent that passed as human.
+  [Open a misclassification](https://github.com/doubleagent-so/core/issues/new?template=misclassification.yml).
+- **Add an agent or bot** with its operator's documentation.
+  [Request one](https://github.com/doubleagent-so/core/issues/new?template=new-agent.yml) or [add it yourself](docs/extending.md#add-an-agent-or-bot-to-the-catalog).
+- **Harder test sessions.** The synthetic traces in `test/traces.ts` are easy today; realistic ones make `npm run bench` meaningful.
+- Issues labelled [good first issue](https://github.com/doubleagent-so/core/labels/good%20first%20issue) and
+  [help wanted](https://github.com/doubleagent-so/core/labels/help%20wanted).
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow (`npm test`, `npm run bench`, `npm run size`). Report
-evasion techniques privately ([SECURITY.md](SECURITY.md)) rather than in a public issue.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first: tests first, false positives are the worst bug, weights need evidence.
+Report evasions privately ([SECURITY.md](SECURITY.md)), not in a public issue.
 
 ## License
 
-MIT
+[MIT](LICENSE) © Double Agent

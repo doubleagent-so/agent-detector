@@ -16,7 +16,28 @@ npm run test:coverage  # ≥ 90% lines and branches on src/
 npm run typecheck
 npm run bench          # confusion matrix on labelled synthetic sessions
 npm run size           # createEngine bundle stays under its gzip budget
+npm run docs           # regenerate docs/signals.md and docs/catalog.md (a test fails if they are stale)
+npm run example        # live verdict page at http://127.0.0.1:8123
 ```
+
+## Project layout
+
+| Path | |
+|---|---|
+| `src/engine.ts` | `createEngine`: wires probes, collectors and fusion together |
+| `src/env/` | Environment probes, device facts, DOM markers |
+| `src/behavior/` | Input collection (`collector.ts`), features (`features.ts`), the event ring (`trace.ts`) |
+| `src/fusion.ts` | Log-odds fusion, confidence, recommendation |
+| `src/signatures.ts` | `DEFAULT_SIGNATURES`: priors, caps, policies, the model version |
+| `src/catalog/` | Named bots and agents, and their in-page fingerprints |
+| `src/conduct.ts` | Friendly / neutral / rogue conduct and agent policies (server side) |
+| `test/` | Vitest suites; `traces.ts` builds synthetic sessions |
+| `bench/`, `examples/`, `scripts/` | Benchmark, runnable examples, build/size/docs scripts |
+
+## Labels
+
+`misclassification` · `false-positive` · `catalog` · `new-signal` · `weights` · `bug` · `docs` ·
+`good first issue` · `help wanted` · `breaking`. Maintainers apply them; say in your issue which one you think fits.
 
 ## Rules
 
