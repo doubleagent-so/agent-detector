@@ -102,4 +102,22 @@ describe('behaviour + fusion on synthetic traces', () => {
     expect(off.reasons.map((r) => r.code)).not.toContain('drive.click_without_approach');
     expect(DEFAULT_SIGNATURES.shadow).toEqual(expect.any(Array));
   });
+
+  it('shadowed hard signal does not short-circuit', () => {
+    const hard: Signal = { code: 'auto.webdriver', group: 'A', target: 'bot', llr: 9, hard: true };
+    const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'hard-shadow' };
+    const withHard = fuse({ ...base, signals: [hard], sig: DEFAULT_SIGNATURES });
+    const shadowed = fuse({ ...base, signals: [hard], sig: { ...DEFAULT_SIGNATURES, shadow: ['auto.webdriver'] } });
+    expect(withHard.probability.bot).toBeGreaterThan(0.98);
+    expect(shadowed.probability.bot).toBeLessThan(0.9);
+    expect(shadowed.class).toBe('human');
+  });
+
+  it('hard signal without shadow still short-circuits', () => {
+    const hard: Signal = { code: 'auto.webdriver', group: 'A', target: 'bot', llr: 9, hard: true };
+    const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'hard-no-shadow' };
+    const v = fuse({ ...base, signals: [hard], sig: DEFAULT_SIGNATURES });
+    expect(v.probability.bot).toBeGreaterThan(0.98);
+    expect(v.class).toBe('bot');
+  });
 });
