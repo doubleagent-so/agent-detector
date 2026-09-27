@@ -11,7 +11,7 @@ The detection engine behind **[Double Agent](https://doubleagent.so)**. It class
 **bot** or **AI agent** (Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely
 inside the page. No dependencies, no network requests: you decide what to do with the verdict.
 
-**[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
+**[doubleagent.so/docs/core](https://doubleagent.so/docs/core/)** · **[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
 **[API](docs/api.md)** · **[Extending](docs/extending.md)** · **[Signals](docs/signals.md)** · **[Catalog](docs/catalog.md)** ·
 **[Contributing](CONTRIBUTING.md)**
 
