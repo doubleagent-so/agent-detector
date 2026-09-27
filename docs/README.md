@@ -9,7 +9,7 @@
 | [Signal codes](signals.md) | Every signal the engine emits (generated) |
 | [Catalog](catalog.md) | Every named bot and agent (generated) |
 
-Overview on the website: [doubleagent.so/docs/core](https://doubleagent.so/docs/core/).
+Overview on the website: [doubleagent.so/docs/agent-detector](https://doubleagent.so/docs/agent-detector/).
 
 Using the hosted product instead? The drop-in script, integrations and plugins are documented at
 [doubleagent.so/docs](https://doubleagent.so/docs/).

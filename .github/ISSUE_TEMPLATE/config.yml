@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or idea
-    url: https://github.com/doubleagent-so/core/discussions
+    url: https://github.com/doubleagent-so/agent-detector/discussions
     about: Ask how to use or extend the engine, or share an idea.
   - name: Security or evasion report
-    url: https://github.com/doubleagent-so/core/blob/main/SECURITY.md
+    url: https://github.com/doubleagent-so/agent-detector/blob/main/SECURITY.md
     about: Report evasions privately, not in a public issue.
   - name: Hosted product (script, dashboard, account)
     url: https://doubleagent.so/docs/

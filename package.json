@@ -1,5 +1,5 @@
 {
-  "name": "@doubleagent-so/core",
+  "name": "@doubleagent-so/agent-detector",
   "version": "0.2.0",
   "description": "Double Agent detection engine: classifies a browser session as human, bot or AI agent, entirely client-side.",
   "keywords": [
@@ -12,10 +12,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doubleagent-so/core.git"
+    "url": "git+https://github.com/doubleagent-so/agent-detector.git"
   },
   "homepage": "https://doubleagent.so/docs/",
-  "bugs": "https://github.com/doubleagent-so/core/issues",
+  "bugs": "https://github.com/doubleagent-so/agent-detector/issues",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",

@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-npm install @doubleagent-so/core
+npm install @doubleagent-so/agent-detector
 ```
 
 ES modules with TypeScript types. No dependencies. Works with any bundler, and in Node for the server-side helpers.
@@ -11,7 +11,7 @@ ES modules with TypeScript types. No dependencies. Works with any bundler, and i
 ## In the page
 
 ```ts
-import { createEngine } from '@doubleagent-so/core';
+import { createEngine } from '@doubleagent-so/agent-detector';
 
 const engine = createEngine(window, { onVerdict: (v) => console.log(v.class) });
 const verdict = await engine.ready;
@@ -77,7 +77,7 @@ IP, signatures) using `fuse` and `engine.addSignals` (see [Extending](extending.
 The catalog helpers need no DOM:
 
 ```ts
-import { matchUserAgent, entryForSignatureAgent, ipListSources } from '@doubleagent-so/core';
+import { matchUserAgent, entryForSignatureAgent, ipListSources } from '@doubleagent-so/agent-detector';
 
 matchUserAgent(req.headers['user-agent'])?.entry;   // longest matching token wins
 entryForSignatureAgent('https://chatgpt.com');       // Web Bot Auth Signature-Agent origin
