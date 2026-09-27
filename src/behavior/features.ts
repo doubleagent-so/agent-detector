@@ -1,6 +1,7 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
 import { fieldFeatures } from './fields.ts';
+import { scrollFeatures } from './scroll.ts';
 import { cv, mean, median, r3, std } from './stats.ts';
 
 /**
@@ -240,6 +241,10 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
     if (big > 0.8 && !fractional) add({ code: 'drive.page_sized_wheel', group: 'D', target: 'agent', llr: 1.5, detail: 'viewport-sized wheel jumps' });
     if (fractional) add({ code: 'human.trackpad_inertia', group: 'C', target: 'both', llr: -0.8 });
   }
+
+  const scroll = scrollFeatures(ev, completeSince);
+  signals.push(...scroll.signals);
+  Object.assign(v, scroll.vector);
 
   // ---------- R: rhythm / LLM think-time ----------
   const actions = ev.filter((e) => ACTION_KINDS.has(e.k));
