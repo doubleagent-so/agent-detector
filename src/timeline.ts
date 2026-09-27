@@ -16,6 +16,13 @@ export function timeline(ev: readonly TraceEvent[], maxLines = 60): string[] {
   for (const e of ev) {
     if (e.k === 'mv' || e.k === 'tm') { movesSince++; continue; }
     if (e.k === 'kd' && !e.sp) { if (!pendingKeys) keyStart = e.t; pendingKeys++; continue; }
+    if (e.k === 'se' || e.k === 'iv') {
+      if (e.k === 'se' && !(e.sy !== undefined && e.h)) continue;
+      flushKeys();
+      lines.push(`t+${s(e.t)} ${e.k === 'se' ? `scrolled to ${(e.sy! / e.h!).toFixed(1)} viewports` : 'field changed without typing'}`);
+      if (lines.length >= maxLines) break;
+      continue;
+    }
     if (e.k === 'ku' || e.k === 'up' || e.k === 'sc') continue;
     flushKeys();
     const gap = e.t - lastAction;
