@@ -4,6 +4,7 @@ import { extractBehavior } from '../src/behavior/features.ts';
 import { fuse, recommend } from '../src/fusion.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
 import type { Signal } from '../src/types.ts';
+import { bezierBot, functionBot, jsFillAgent, visionAgent } from './traces.ts';
 
 const codes = (ev: TraceEvent[], now = 20000) => extractBehavior(ev, now).signals.map((s) => s.code);
 const range = (n: number, f: (i: number) => TraceEvent): TraceEvent[] => Array.from({ length: n }, (_, i) => f(i));
@@ -166,5 +167,17 @@ describe('fusion branches', () => {
     expect(recommend(S, 'generic', 'custom/thing', 'bot', 0.85, false)).toBe('challenge');
     expect(recommend(S, 'nope' as never, 'search', 'bot', 0.9, false)).toBe('challenge');
     expect(recommend({ ...S, policies: { ...S.policies, generic: { odd: {} } } }, 'generic', 'odd', 'bot', 0.99, false)).toBe('tag');
+  });
+});
+
+describe('FP-Agent / BeCAPTCHA detectors on generated sessions', () => {
+  const fires = (ev: TraceEvent[], code: string) => extractBehavior(ev, ev[ev.length - 1].t + 500).signals.some((s) => s.code === code);
+  it('script fill agent', () => expect(fires(jsFillAgent(), 'drive.synthetic_field_fill')).toBe(true));
+  it('vision agent wheel steps', () => expect(fires(visionAgent(), 'drive.uniform_scroll_bursts')).toBe(true));
+  it('Bézier bot', () => expect(fires(bezierBot(), 'bio.smooth_synthetic_curve')).toBe(true));
+  it('BeCAPTCHA quadratic × constant and exponential × log', () => {
+    expect(fires(functionBot(5, 'quadratic', 'constant'), 'bio.smooth_synthetic_curve')).toBe(true);
+    expect(fires(functionBot(5, 'quadratic', 'constant'), 'bio.no_deceleration')).toBe(true);
+    expect(fires(functionBot(5, 'exponential', 'log'), 'bio.no_deceleration')).toBe(true);
   });
 });
