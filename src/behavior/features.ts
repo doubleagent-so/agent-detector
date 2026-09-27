@@ -62,6 +62,7 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
     driveReliability: Math.min(1, 0.4 + 0.15 * (downs.length + inputs.filter((i) => i.it !== 'r').length)),
   };
   const add = (s: Signal) => signals.push(s);
+  const collect = (r: { signals: Signal[]; vector: Record<string, number> }) => { signals.push(...r.signals); Object.assign(v, r.vector); };
 
   // ---------- D: synthetic / CDP input artefacts ----------
   if (untrusted > 0) add({ code: 'drive.untrusted_events', group: 'D', target: 'bot', llr: Math.min(4, 1.5 + untrusted * 0.3), detail: `${untrusted} isTrusted=false` });
@@ -153,9 +154,7 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   }
   if (instantFill >= 2) add({ code: 'drive.instant_field_fill', group: 'D', target: 'agent', llr: 1.5, detail: `${instantFill} fields filled instantly on focus` });
 
-  const fields = fieldFeatures(trace, completeSince);
-  signals.push(...fields.signals);
-  Object.assign(v, fields.vector);
+  collect(fieldFeatures(trace, completeSince));
 
   // ---------- C: keystroke dynamics ----------
   if (keys.length >= 10) {
@@ -183,14 +182,8 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   const mouse = moves.filter((m) => m.pt === 'm');
   const segs = segmentMoves(mouse);
   const runs = segmentMoves(mouse, 250, 3).map(points);
-  const curvature = curvatureFeatures(runs);
-  signals.push(...curvature.signals);
-  Object.assign(v, curvature.vector);
-  if (runs.length) {
-    const velocity = velocityFeatures(runs);
-    signals.push(...velocity.signals);
-    Object.assign(v, velocity.vector);
-  }
+  collect(curvatureFeatures(runs));
+  if (runs.length) collect(velocityFeatures(runs));
   if (segs.length >= 3) {
     const straight: number[] = [];
     const jitter: number[] = [];
@@ -253,9 +246,7 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
     if (fractional) add({ code: 'human.trackpad_inertia', group: 'C', target: 'both', llr: -0.8 });
   }
 
-  const scroll = scrollFeatures(ev, completeSince);
-  signals.push(...scroll.signals);
-  Object.assign(v, scroll.vector);
+  collect(scrollFeatures(ev, completeSince));
 
   // ---------- R: rhythm / LLM think-time ----------
   const actions = ev.filter((e) => ACTION_KINDS.has(e.k));

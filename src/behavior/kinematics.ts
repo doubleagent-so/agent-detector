@@ -85,13 +85,9 @@ export function curvatureFeatures(runs: readonly Pt[][]): { signals: Signal[]; v
     const path = pathLength(p);
     if (p.length < 3 || path < 60) continue;
     const angles: number[] = [];
-    for (let i = 1; i < p.length - 1; i++) {
-      angles.push(curvatureAngle(p[i - 1], p[i], p[i + 1]));
-      dists.push(curvatureDistance(p[i - 1], p[i], p[i + 1]));
-    }
     for (let i = 1; i < p.length; i++) {
-      const a = Math.atan2(p[i].y - p[i - 1].y, p[i].x - p[i - 1].x);
-      bins[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]++;
+      bins[((Math.round(Math.atan2(p[i].y - p[i - 1].y, p[i].x - p[i - 1].x) / (Math.PI / 4)) % 8) + 8) % 8]++;
+      if (i < p.length - 1) { angles.push(curvatureAngle(p[i - 1], p[i], p[i + 1])); dists.push(curvatureDistance(p[i - 1], p[i], p[i + 1])); }
     }
     angleMeans.push(mean(angles));
     angleRanges.push(Math.max(...angles) - Math.min(...angles));
@@ -110,7 +106,7 @@ export function curvatureFeatures(runs: readonly Pt[][]): { signals: Signal[]; v
     curv_dist_mean: r3(mean(dists)),
     move_dir_entropy: r3(entropy),
   };
-  if (curved >= 4 && smooth / curved >= 0.8) signals.push({ code: 'bio.smooth_synthetic_curve', group: 'C', target: 'both', llr: 1.5, detail: `${smooth}/${curved} curved paths with no micro-corrections` });
+  if (curved >= 4 && smooth / curved >= 0.8) signals.push({ code: 'bio.smooth_synthetic_curve', group: 'C', target: 'both', llr: 1.5, detail: `${smooth}/${curved} smooth curves` });
   return { signals, vector };
 }
 
@@ -147,6 +143,6 @@ export function velocityFeatures(runs: readonly Pt[][]): { signals: Signal[]; ve
     vel_peaks: median(peaks),
   };
   const flat = endRatio.filter((r) => r > 0.6).length;
-  if (endRatio.length >= 3 && flat / endRatio.length >= 0.8) signals.push({ code: 'bio.no_deceleration', group: 'C', target: 'both', llr: 1.5, detail: `${flat}/${endRatio.length} movements with no slow-down before stopping` });
+  if (endRatio.length >= 3 && flat / endRatio.length >= 0.8) signals.push({ code: 'bio.no_deceleration', group: 'C', target: 'both', llr: 1.5, detail: `${flat}/${endRatio.length} no slowdown` });
   return { signals, vector };
 }

@@ -19,6 +19,6 @@ export function fieldFeatures(trace: readonly TraceEvent[], completeSince: numbe
     if (!explaining.some((x) => x.t <= e.t && x.t >= e.t - 1000)) orphanFields.add(e.fs);
   }
   const signals: Signal[] = [];
-  if (orphanFields.size >= 2) signals.push({ code: 'drive.synthetic_field_fill', group: 'D', target: 'agent', llr: 2, detail: `${orphanFields.size} fields set by script with no input` });
+  if (orphanFields.size >= 2) signals.push({ code: 'drive.synthetic_field_fill', group: 'D', target: 'agent', llr: 2, detail: `${orphanFields.size} script-set fields` });
   return { signals, vector: { field_synthetic_events: synthetic, field_orphan_fields: orphanFields.size } };
 }
