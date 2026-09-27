@@ -89,7 +89,7 @@ weights you expect for each code, and drop codes you do not know.
 Everything numeric is in one object. Pass a modified copy to experiment without forking:
 
 ```ts
-import { createEngine, DEFAULT_SIGNATURES } from '@doubleagent-so/core';
+import { createEngine, DEFAULT_SIGNATURES } from '@doubleagent-so/agent-detector';
 
 createEngine(window, {
   signatures: { ...DEFAULT_SIGNATURES, version: 'my-2026.10', groupCaps: { ...DEFAULT_SIGNATURES.groupCaps, E: 3 } },

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as core from '../src/index.ts';
 
-// The published surface of @doubleagent-so/core. Adding a name is a minor release; removing or
+// The published surface of @doubleagent-so/agent-detector. Adding a name is a minor release; removing or
 // renaming one is a breaking change (bump the major version and note it in the changelog).
 const EXPORTS = [
   'CATALOG', 'DEFAULT_AGENT_POLICY', 'DEFAULT_SIGNATURES', 'FINGERPRINTS', 'SOFT_SIGNAL_REVISIONS',

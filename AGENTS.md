@@ -1,7 +1,7 @@
 # Agent instructions
 
-`@doubleagent-so/core`: the client-side human / bot / AI-agent detection engine. Public, MIT. Website overview:
-https://doubleagent.so/docs/core/. Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing detection.
+`@doubleagent-so/agent-detector`: the client-side human / bot / AI-agent detection engine. Public, MIT. Website overview:
+https://doubleagent.so/docs/agent-detector/. Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing detection.
 
 ## Commands
 

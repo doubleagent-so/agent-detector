@@ -11,4 +11,4 @@ body:
     attributes: { label: Minimal reproduction, render: ts }
   - type: input
     id: env
-    attributes: { label: Version and environment, placeholder: '@doubleagent-so/core 0.1.0, Chrome 141, Vite 8' }
+    attributes: { label: Version and environment, placeholder: '@doubleagent-so/agent-detector 0.1.0, Chrome 141, Vite 8' }

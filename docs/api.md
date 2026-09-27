@@ -1,6 +1,6 @@
 # API reference
 
-Everything is exported from `@doubleagent-so/core`. Types come with the package. The export list is pinned by
+Everything is exported from `@doubleagent-so/agent-detector`. Types come with the package. The export list is pinned by
 [test/public-api.test.ts](../test/public-api.test.ts): removing or renaming anything is a major release.
 
 ## Engine (browser)

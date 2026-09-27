@@ -1,17 +1,17 @@
-# @doubleagent-so/core
+# @doubleagent-so/agent-detector
 
-[![CI](https://github.com/doubleagent-so/core/actions/workflows/ci.yml/badge.svg)](https://github.com/doubleagent-so/core/actions/workflows/ci.yml)
+[![CI](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Types](https://img.shields.io/badge/types-included-3178c6.svg)](src/types.ts)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
-[![Size](https://img.shields.io/badge/engine-%E2%89%A415%20KB%20gzip-brightgreen.svg)](scripts/size.mjs)
+[![Size](https://img.shields.io/badge/engine-%E2%89%A416%20KB%20gzip-brightgreen.svg)](scripts/size.mjs)
 [![Catalog](https://img.shields.io/badge/catalog-226%20bots%20%26%20agents-8a2be2.svg)](docs/catalog.md)
 
 The detection engine behind **[Double Agent](https://doubleagent.so)**. It classifies a browser session as **human**,
 **bot** or **AI agent** (Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely
 inside the page. No dependencies, no network requests: you decide what to do with the verdict.
 
-**[doubleagent.so/docs/core](https://doubleagent.so/docs/core/)** · **[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
+**[doubleagent.so/docs/agent-detector](https://doubleagent.so/docs/agent-detector/)** · **[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
 **[API](docs/api.md)** · **[Extending](docs/extending.md)** · **[Signals](docs/signals.md)** · **[Catalog](docs/catalog.md)** ·
 **[Contributing](CONTRIBUTING.md)**
 
@@ -21,13 +21,13 @@ use [`@doubleagent-so/js`](https://doubleagent.so/docs/script-tag/).
 ## Install
 
 ```sh
-npm install @doubleagent-so/core
+npm install @doubleagent-so/agent-detector
 ```
 
 ## Quick start
 
 ```ts
-import { createEngine } from '@doubleagent-so/core';
+import { createEngine } from '@doubleagent-so/agent-detector';
 
 const engine = createEngine(window, {
   profile: 'ecommerce',                 // optional; detected from the page when omitted
@@ -51,7 +51,7 @@ the class, recommendation, agent, stage or probability band changes.
 Server-side helpers work without a DOM:
 
 ```ts
-import { matchUserAgent, CATALOG } from '@doubleagent-so/core';
+import { matchUserAgent, CATALOG } from '@doubleagent-so/agent-detector';
 
 matchUserAgent('Mozilla/5.0 … ChatGPT-User/1.0; +https://openai.com/bot')?.entry.id; // 'openai.chatgpt-user'
 ```
@@ -69,7 +69,7 @@ client cannot forge: [examples/server.ts](examples/server.ts).
 ## Try it
 
 ```sh
-git clone https://github.com/doubleagent-so/core && cd core && npm ci
+git clone https://github.com/doubleagent-so/agent-detector && cd agent-detector && npm ci
 npm run example     # live verdict at http://127.0.0.1:8123 — try a real browser, a headless one and an agent
 npm run bench       # confusion matrix on labelled synthetic sessions
 ```
@@ -79,12 +79,12 @@ npm run bench       # confusion matrix on labelled synthetic sessions
 Detection gets better with more eyes. Good places to start:
 
 - **Report a misread session**: a real browser labelled automated, or an agent that passed as human.
-  [Open a misclassification](https://github.com/doubleagent-so/core/issues/new?template=misclassification.yml).
+  [Open a misclassification](https://github.com/doubleagent-so/agent-detector/issues/new?template=misclassification.yml).
 - **Add an agent or bot** with its operator's documentation.
-  [Request one](https://github.com/doubleagent-so/core/issues/new?template=new-agent.yml) or [add it yourself](docs/extending.md#add-an-agent-or-bot-to-the-catalog).
+  [Request one](https://github.com/doubleagent-so/agent-detector/issues/new?template=new-agent.yml) or [add it yourself](docs/extending.md#add-an-agent-or-bot-to-the-catalog).
 - **Harder test sessions.** The synthetic traces in `test/traces.ts` are easy today; realistic ones make `npm run bench` meaningful.
-- Issues labelled [good first issue](https://github.com/doubleagent-so/core/labels/good%20first%20issue) and
-  [help wanted](https://github.com/doubleagent-so/core/labels/help%20wanted).
+- Issues labelled [good first issue](https://github.com/doubleagent-so/agent-detector/labels/good%20first%20issue) and
+  [help wanted](https://github.com/doubleagent-so/agent-detector/labels/help%20wanted).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first: tests first, false positives are the worst bug, weights need evidence.
 Report evasions privately ([SECURITY.md](SECURITY.md)), not in a public issue.
