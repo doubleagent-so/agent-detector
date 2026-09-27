@@ -34,6 +34,8 @@ const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
   'drive.instant_field_fill': 'text',
   'drive.synthetic_field_fill': 'text',
   'drive.cdp_screen_coords': 'coordinates',
+  'drive.scroll_jump': 'scroll',
+  'drive.uniform_scroll_bursts': 'scroll',
 };
 export function hasAutomationEvidence(signals: readonly Signal[], reliability: Record<Group, number>): boolean {
   const families = new Set<string>();
