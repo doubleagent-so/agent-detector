@@ -1,11 +1,13 @@
 import type { Target } from '../types.ts';
+import type { RoleCatalog } from '../attribution.ts';
 import { CATALOG } from './entries.ts';
-import type { CatalogEntry, IpList } from './types.ts';
+import { familyOf, operatorForHost } from './family.ts';
+import type { CatalogEntry, IpList, Surface } from './types.ts';
 
 export * from './types.ts';
 export { CATALOG };
 export { familyOf, familyOfOperator, operatorForHost } from './family.ts';
-export { globalRules, markerRules } from './rules.ts';
+export { fingerprintRoles, globalRules, markerRules } from './rules.ts';
 export { FINGERPRINTS, type Fingerprint } from './fingerprinted.ts';
 
 const byId = new Map(CATALOG.map((e) => [e.id, e]));
@@ -62,4 +64,21 @@ export function ipListSources(): IpListSource[] {
   }
   return [...out.values()];
 }
+
+const CONTROLLER_SURFACES: ReadonlySet<Surface> = new Set<Surface>(['automation_tool', 'http_library']);
+/** The operator of each published IP list; a list shared across operators would name none. */
+const listOperators = new Map(ipListSources().flatMap((list) => {
+  const operators = new Set(list.entries.map((e) => e.operator));
+  return operators.size === 1 ? [[list.vendor, list.entries[0].operator] as const] : [];
+}));
+
+/** Attribution catalog for servers: every entry, every published IP list, every known signer domain. */
+export const catalogRoles: RoleCatalog = {
+  entry: (id) => {
+    const e = byId.get(id);
+    return e && { id: e.id, operator: e.operator, family: familyOf(e), controller: CONTROLLER_SURFACES.has(e.surface) };
+  },
+  ipListOperator: (vendor) => listOperators.get(vendor),
+  hostOperator: operatorForHost,
+};
 

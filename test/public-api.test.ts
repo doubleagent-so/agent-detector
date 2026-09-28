@@ -6,9 +6,9 @@ import * as core from '../src/index.ts';
 // renaming one is a breaking change (bump the major version and note it in the changelog).
 const EXPORTS = [
   'CATALOG', 'DEFAULT_AGENT_POLICY', 'DEFAULT_SIGNATURES', 'FINGERPRINTS', 'SOFT_SIGNAL_REVISIONS',
-  'applyConduct', 'assessConduct', 'catalogEntry', 'createEngine', 'detectPage', 'entryForSignatureAgent',
-  'extractBehavior', 'familyOf', 'familyOfOperator', 'fuse', 'globalRules', 'ipListSources', 'markerRules',
-  'matchUserAgent', 'neutralBehavior', 'operatorForHost', 'parseAgentPolicy', 'recommend', 'scanMarkers',
+  'applyConduct', 'assessConduct', 'catalogEntry', 'catalogRoles', 'createEngine', 'detectPage', 'entryForSignatureAgent',
+  'extractBehavior', 'familyOf', 'familyOfOperator', 'fingerprintRoles', 'fuse', 'globalRules', 'ipListSources', 'markerRules',
+  'matchUserAgent', 'neutralBehavior', 'operatorForHost', 'parseAgentPolicy', 'recommend', 'resolveRoles', 'scanMarkers',
   'targetOf', 'timeline', 'validAction',
 ];
 
