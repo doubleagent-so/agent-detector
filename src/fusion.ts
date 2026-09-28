@@ -1,6 +1,8 @@
+import { resolveRoles, type RoleCatalog, type Roles } from './attribution.ts';
+import { fingerprintRoles } from './catalog/rules.ts';
 import { hasAutomationEvidence, normalizeSoftSignal } from './evidence.ts';
 import { neutralBehavior } from './conduct.ts';
-import type { Action, AgentFamily, Group, Profile, Reason, Signal, Signatures, VerdictClass, Verdict, Recommendation } from './types.ts';
+import type { Action, Group, Profile, Reason, Signal, Signatures, VerdictClass, Verdict, Recommendation } from './types.ts';
 
 /**
  * Heuristic log-odds fusion (weights require validation on labeled traffic).
@@ -31,10 +33,15 @@ export interface FuseInput {
   sessionId: string;
   stage?: 'provisional' | 'final';
   judge?: string;
+  /** Catalog for attribution. Defaults to the fingerprints the browser bundle carries; servers pass `catalogRoles`. */
+  catalog?: RoleCatalog;
 }
 
 const logit = (p: number) => Math.log(p / (1 - p));
 const sigm = (x: number) => 1 / (1 + Math.exp(-x));
+const byCode = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+/** Strongest evidence first; the code breaks ties, so a choice never depends on signal order. */
+const strongestFirst = (left: Signal, right: Signal): number => right.llr - left.llr || byCode(left.code, right.code);
 
 export function fuse(inp: FuseInput): Verdict {
   const { sig } = inp;
@@ -75,17 +82,17 @@ export function fuse(inp: FuseInput): Verdict {
 
   let probability = softmax({ human: 0, bot: L.bot, agent: L.agent });
 
-  // Hard evidence short-circuit.
-  const verified = signals.find((s) => s.group === 'H' && s.code.startsWith('verified.') && !shadow.has(s.code));
+  // Hard evidence short-circuit. A server-verified identity outranks everything; the strongest one wins.
+  const verified = signals
+    .filter((s) => s.group === 'H' && s.code.startsWith('verified.') && !shadow.has(s.code))
+    .sort(strongestFirst)[0];
   const hard = verified ? [verified] : signals.filter((s) => s.hard);
-  const attributed = signals.find((s) => (s.family || s.agentId) && s.llr > 0);
-  let family: AgentFamily | undefined = attributed?.family;
+  const catalog = inp.catalog ?? fingerprintRoles;
+  const roles = resolveRoles(signals, { catalog });
   if (hard.length) {
     const agentHard = hard.some((s) => s.target === 'agent');
-    const cls: VerdictClass = agentHard ? 'agent' : 'bot';
-    // An automation framework with agent-like driving is most likely an agent framework (Browser Use, Stagehand on Playwright).
-    const agentish = !verified && !agentHard && drivingScore > 0.85 && (sums.agent.R ?? 0) > 1;
-    const winner: VerdictClass = agentish ? 'agent' : cls;
+    // An agent marker wins; a verified identity is a bot; an automation tool alone depends on its driving.
+    const winner: VerdictClass = agentHard ? 'agent' : verified ? 'bot' : automationWinner(drivingScore, sums.agent);
     probability = winner === 'agent'
       ? { human: 0.004, bot: 0.006, agent: 0.99 }
       : { human: 0.004, bot: 0.99, agent: 0.006 };
@@ -111,7 +118,7 @@ export function fuse(inp: FuseInput): Verdict {
   const reasons: Reason[] = signals
     .filter((s) => (cls === 'human' ? s.llr < 0 : s.llr > 0 && (s.target === cls || s.target === 'both')))
     .map((s) => ({ code: s.code, detail: s.detail, weight: r3(Math.abs(s.llr) * rel[s.group]) }))
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => b.weight - a.weight || byCode(a.code, b.code))
     .slice(0, 8);
 
   if (insufficient) reasons.unshift({ code: 'evidence.insufficient_automation', weight: 0, detail: 'Environment or ambiguous interaction signals lack corroboration; human-leaning, not verified human.' });
@@ -123,14 +130,7 @@ export function fuse(inp: FuseInput): Verdict {
     class: cls,
     probability: { human: r3(probability.human), bot: r3(probability.bot), agent: r3(probability.agent) },
     confidence,
-    agent: cls === 'agent' || verified
-      ? {
-          family: (verified?.family ?? family ?? 'unknown') as AgentFamily,
-          ...(((verified ? verified.agentId : attributed?.agentId)) ? { id: (verified ? verified.agentId : attributed?.agentId) } : {}),
-          verified: !!verified,
-          method: verified ? verified.code : hard.find((s) => s.family)?.code ?? 'behavioral',
-        }
-      : undefined,
+    agent: cls === 'agent' || verified ? agentOf(roles, catalog, signals, hard, verified) : undefined,
     reasons,
     scores: { automation: r3(nonHuman), environment: r3(envScore), driving: r3(drivingScore) },
     recommendation: recommend(inp.sig, inp.profile, inp.action, cls, nonHuman, !!verified),
@@ -140,6 +140,35 @@ export function fuse(inp: FuseInput): Verdict {
     model: `doubleagent-${sig.version}`,
     judge: inp.judge,
     ts: Date.now(),
+  };
+}
+
+/**
+ * Controller-only hard evidence: an automation tool proves the visit is not human, not who drives it
+ * (Browser Use and Stagehand run on Playwright). Only strong driving *with* think-then-act rhythm
+ * makes it an agent: scripted runs can look driven, but not deliberate. Otherwise it stays a bot,
+ * at full certainty, since SDK blocking thresholds read `probability.bot`.
+ */
+function automationWinner(drivingScore: number, agentSums: Partial<Record<Group, number>>): VerdictClass {
+  const rhythm = agentSums.R ?? 0;
+  return drivingScore > 0.85 && rhythm > 1 ? 'agent' : 'bot';
+}
+
+/** The verdict's agent: the resolved roles, plus the legacy family and method. */
+function agentOf(roles: Roles, catalog: RoleCatalog, signals: readonly Signal[], hard: readonly Signal[], verified: Signal | undefined): NonNullable<Verdict['agent']> {
+  const agent = roles.agent?.evidence === 'spoofed' ? null : roles.agent;
+  const family = verified?.family
+    ?? (agent ? catalog.entry(agent.id)?.family : undefined)
+    ?? signals.filter((s) => s.family && s.llr > 0).sort(strongestFirst)[0]?.family
+    ?? 'unknown';
+  const method = verified?.code ?? agent?.source ?? hard.filter((s) => s.family).sort(strongestFirst)[0]?.code ?? 'behavioral';
+  return {
+    family,
+    ...(agent ? { id: agent.id } : {}),
+    verified: !!verified,
+    method,
+    ...(roles.operator ? { operator: roles.operator.id } : {}),
+    ...(roles.controller ? { controller: roles.controller.id } : {}),
   };
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { catalogRoles } from '../src/catalog/index.ts';
 import { assessConduct, applyConduct, DEFAULT_AGENT_POLICY, parseAgentPolicy, type AgentPolicy } from '../src/conduct.ts';
 import { fuse } from '../src/fusion.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
@@ -104,7 +105,23 @@ it('server-verified crawler identity takes precedence over a copied agent marker
     sig: DEFAULT_SIGNATURES,
     behaviorReliability: 0,
     sessionId: 'test',
+    catalog: catalogRoles,
   });
   expect(v.class).toBe('bot');
   expect(v.agent).toMatchObject({ id: 'openai.gptbot', verified: true, family: 'openai' });
+});
+
+it('grants policy identity only to an agent proven by a signature or a published IP list', () => {
+  const allowAll: AgentPolicy = { ...policy, rules: [{ id: 'all', effect: 'allow', actions: ['checkout'], agentIds: ['*'] }] };
+  const decision = (signals: Signal[]) => assessConduct({ action: 'checkout', signals, policy: allowAll }).authorization.decision;
+  expect(decision([{ code: 'verified.ip_range:openai_chatgpt_user', group: 'H', target: 'agent', llr: 5, agentId: 'openai.chatgpt-user' }])).toBe('allowed');
+  expect(decision([{ code: 'ua.declared_agent:ChatGPT-User', group: 'H', target: 'agent', llr: 4, agentId: 'openai.chatgpt-user' }])).toBe('unknown');
+  // A verified signal naming an agent the catalog does not know attributes nobody.
+  expect(decision([{ code: 'verified.web_bot_auth', group: 'H', target: 'agent', llr: 9, hard: true, agentId: 'nobody.unknown' }])).toBe('unknown');
+  expect(decision([{ code: 'global.playwright', group: 'A', target: 'bot', llr: 9, hard: true, agentId: 'playwright.automation' }])).toBe('unknown');
+  // A shared list proves the operator, not a product: there is no agent id to authorize.
+  expect(decision([
+    { code: 'verified.ip_range:anthropic', group: 'H', target: 'bot', llr: 5 },
+    { code: 'ua.declared_agent:ClaudeBot', group: 'H', target: 'bot', llr: 4, agentId: 'anthropic.claudebot' },
+  ])).toBe('unknown');
 });

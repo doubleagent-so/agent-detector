@@ -1,3 +1,5 @@
+import { resolveRoles, type Evidence, type RoleCatalog } from './attribution.ts';
+import { catalogRoles } from './catalog/index.ts';
 import type { Signal, Verdict } from './types.ts';
 
 /** Observed conduct, independent of automation class and catalog task category. */
@@ -50,6 +52,8 @@ export interface ConductInput {
   policy?: AgentPolicy;
   integrity?: IntegrityAssessment;
   activity?: ApplicationActivity;
+  /** Attribution catalog; the full catalog by default, since conduct runs on a server. */
+  catalog?: RoleCatalog;
 }
 export const neutralBehavior = (): BehaviorAssessment => ({
   version: 1,
@@ -59,6 +63,8 @@ export const neutralBehavior = (): BehaviorAssessment => ({
   scope: 'observation',
   reasons: [],
 });
+/** Evidence that may carry policy: a signature or a published IP list, never a DOM marker or UA declaration. */
+const POLICY_EVIDENCE: ReadonlySet<Evidence> = new Set<Evidence>(['signed', 'ip']);
 
 /** Call only with server-owned evidence. No browser payload may supply policy/activity/integrity. */
 export function assessConduct(input: ConductInput): { behavior: BehaviorAssessment; authorization: AuthorizationAssessment } {
@@ -70,7 +76,8 @@ export function assessConduct(input: ConductInput): { behavior: BehaviorAssessme
     risk = Math.max(risk, value);
   };
   // Attribution for policy is exclusively server-verified evidence, never a DOM marker or UA declaration.
-  const identity = input.signals.find((s) => s.group === 'H' && s.code.startsWith('verified.') && s.agentId)?.agentId;
+  const agent = resolveRoles(input.signals, { catalog: input.catalog ?? catalogRoles }).agent;
+  const identity = agent?.id && POLICY_EVIDENCE.has(agent.evidence) ? agent.id : undefined;
   const matches = policy.rules.filter(
     (r) =>
       (r.actions.includes(input.action) || r.actions.includes('*')) &&

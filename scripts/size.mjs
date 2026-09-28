@@ -2,7 +2,7 @@
 import { build } from 'esbuild';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET_GZIP = 16 * 1024; // 13.4 KB before the FP-Agent/BeCAPTCHA detectors, 15.5 KB after (2026-09-27)
+const BUDGET_GZIP = 17 * 1024; // 15.5 KB after the FP-Agent/BeCAPTCHA detectors (2026-09-27); 15.62 KB before order-independent attribution roles (2026-09-28)
 const out = await build({
   stdin: { contents: "import { createEngine } from './src/index.ts'; createEngine(window);", resolveDir: process.cwd(), loader: 'ts' },
   bundle: true, minify: true, format: 'iife', target: 'es2019', platform: 'browser', write: false, logLevel: 'warning',

@@ -63,8 +63,11 @@ export interface Verdict {
   probability: Record<VerdictClass, number>;
   /** 0..1 — how much evidence the verdict rests on (not the same as probability). */
   confidence: number;
-  /** `id` is the catalog entry (packages/core/src/catalog); `family` is the legacy coarse label. */
-  agent?: { family: AgentFamily; id?: string; verified: boolean; method: string };
+  /**
+   * `id` is the resolved agent (a catalog id or declared name, never an automation tool); `family` is
+   * the legacy coarse label. `operator` and `controller` are the other resolved roles (attribution.ts).
+   */
+  agent?: { family: AgentFamily; id?: string; verified: boolean; method: string; operator?: string; controller?: string };
   reasons: Reason[];
   scores: { automation: number; environment: number; driving: number };
   recommendation: Recommendation;
