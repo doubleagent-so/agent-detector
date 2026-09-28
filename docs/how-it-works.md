@@ -56,12 +56,18 @@ Then, in order:
 
 1. **Bot or agent.** An environment score (is the browser fake?) and a driving score (are the hands non-human?)
    separate the two: a real browser driven by non-human input leans agent, a fake browser leans bot.
-2. **Hard evidence** sets the winning class to 0.99. A server-verified identity (`verified.*`, group H) wins over
-   everything.
+2. **Hard evidence.** A server-verified identity (`verified.*`, group H) or an agent's own artefact sets the
+   winning class to 0.99; a verified identity wins over everything. An automation tool alone (`auto.webdriver`,
+   `global.playwright`) proves only that the visit is not human: it is `bot` at 0.99, or `agent` at 0.99 when the
+   driving is strong and deliberate (driving score > 0.85 with think-then-act rhythm).
 3. **Corroboration.** Without hard evidence, or at least two independent behaviour families (geometry, timing,
    text, coordinates), the verdict stays a low-confidence `human` lean. Environment oddities alone never accuse:
    privacy browsers, extensions and VMs are real people too.
 4. **Confidence** grows with evidence mass and distance from the decision boundary.
+
+**Attribution.** `resolveRoles` names the agent, its operator, the controller and the client separately, each
+with its own evidence, and never depends on the order signals arrived in. A shared IP list proves an operator
+but no product; automation tools and HTTP libraries are controllers, never agents.
 
 ## Recommendation
 

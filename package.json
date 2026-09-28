@@ -1,6 +1,6 @@
 {
   "name": "@doubleagent-so/agent-detector",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Double Agent detection engine: classifies a browser session as human, bot or AI agent, entirely client-side.",
   "keywords": [
     "bot-detection",
