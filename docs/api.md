@@ -44,12 +44,34 @@ fuse({
   driveReliability: 0.8,         // from payload.stats.driveReliability
   sessionId,
   sitePrior, attackMode, stage, judge, // optional
+  catalog: catalogRoles,         // on a server; the browser default is fingerprintRoles
 });
 ```
 
 ### `recommend(signatures, profile, action, class, pNonHuman, verified): Recommendation`
 
 The policy step on its own.
+
+### `resolveRoles(signals, input): Roles`
+
+Who a session is, in four roles with their own evidence. Pure and independent of signal order.
+
+```ts
+const roles = resolveRoles(signals, {
+  catalog: catalogRoles,                                        // fingerprintRoles in a browser
+  declaration: { name: 'acme.shopper', authenticated: false },  // optional ERC-8004 user-agent name
+});
+// roles.agent      { id: 'anthropic.claudebot', evidence: 'declared', source: 'ua.declared_agent:ClaudeBot' }
+// roles.operator   { id: 'anthropic', evidence: 'ip', source: 'verified.ip_range:anthropic' }
+// roles.controller { id: 'playwright.automation', evidence: 'marker', source: 'global.playwright' }
+```
+
+Evidence, strongest first: `signed` (Web Bot Auth), `authenticated` (ERC-8128 request auth bound to the declared
+token), `ip` (published list; names an agent only when the list has one entry), `rdns`, `declared` (UA token or
+declaration), `marker` (DOM marker, JS global, webdriver flag), `detected` (model only). A spoofed claim
+(`net.unverified_claim:*`) yields `{ id: null, evidence: 'spoofed' }` and drops every other declared claim. When an
+agent that only asserts itself (`declared`, `marker` or `detected`) disagrees with an operator proven by a
+signature, IP list or reverse DNS, `agent` is null and `conflict` is true.
 
 ### `extractBehavior(trace, nowMs, completeSince?): BehaviorFeatures`
 
@@ -88,6 +110,8 @@ Action names are `[A-Za-z0-9/_]`, 1 to 64 characters.
 | `targetOf(entry)` | `bot` or `agent`. |
 | `FINGERPRINTS` | DOM markers and window globals per entry, before they become rules. |
 | `markerRules()`, `globalRules()` | Fingerprints as `Signatures` rules. |
+| `catalogRoles` | The full catalog as a `RoleCatalog`, for `resolveRoles` and `fuse` on a server. |
+| `fingerprintRoles` | The fingerprinted entries as a `RoleCatalog`: what the browser bundle knows. |
 
 ## Conduct (server)
 
@@ -107,5 +131,7 @@ automation.
 `Verdict`, `VerdictClass`, `Signal`, `Group`, `Target`, `Reason`, `Recommendation`, `Profile`, `Action`,
 `AgentFamily`, `Signatures`, `MarkerRule`, `GlobalRule`, `ActionPolicy`, `Engine`, `EngineOptions`,
 `BeaconPayload`, `FuseInput`, `PageContext`, `TraceEvent`, `CatalogEntry`, `Surface`, `Verifiable`, `Behaviour`,
-`AgentPolicy`, `ConductInput`, `BehaviorAssessment`, `AuthorizationAssessment`, `IntegrityAssessment`. See
-[src/types.ts](../src/types.ts) and [src/catalog/types.ts](../src/catalog/types.ts).
+`AgentPolicy`, `ConductInput`, `BehaviorAssessment`, `AuthorizationAssessment`, `IntegrityAssessment`, `Roles`,
+`RoleClaim`, `SpoofedClaim`, `ClientRole`, `Evidence`, `ProvenEvidence`, `RoleCatalog`, `RoleEntry`,
+`RoleDeclaration`, `RoleInput`. See [src/types.ts](../src/types.ts), [src/catalog/types.ts](../src/catalog/types.ts)
+and [src/attribution.ts](../src/attribution.ts).
