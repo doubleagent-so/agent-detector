@@ -1,4 +1,9 @@
 export * from './types.ts';
+export {
+  resolveRoles,
+  type ClientRole, type Evidence, type ProvenEvidence, type RoleCatalog, type RoleClaim, type RoleDeclaration, type RoleEntry,
+  type RoleInput, type Roles, type SpoofedClaim,
+} from './attribution.ts';
 export { DEFAULT_SIGNATURES } from './signatures.ts';
 export { createEngine, type Engine, type EngineOptions, type BeaconPayload } from './engine.ts';
 export { fuse, recommend, type FuseInput } from './fusion.ts';
