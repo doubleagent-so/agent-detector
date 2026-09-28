@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { extractBehavior } from '../src/behavior/features.ts';
+import { catalogRoles } from '../src/catalog/index.ts';
 import { fuse } from '../src/fusion.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
 import { timeline } from '../src/timeline.ts';
@@ -108,7 +109,8 @@ describe('behaviour + fusion on synthetic traces', () => {
     const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'hard-shadow' };
     const withHard = fuse({ ...base, signals: [hard], sig: DEFAULT_SIGNATURES });
     const shadowed = fuse({ ...base, signals: [hard], sig: { ...DEFAULT_SIGNATURES, shadow: ['auto.webdriver'] } });
-    expect(withHard.probability.bot).toBeGreaterThan(0.98);
+    expect(1 - withHard.probability.human).toBeGreaterThanOrEqual(0.99);
+    expect(withHard.class).toBe('bot');
     expect(shadowed.probability.bot).toBeLessThan(0.9);
     expect(shadowed.class).toBe('human');
   });
@@ -128,7 +130,78 @@ describe('behaviour + fusion on synthetic traces', () => {
     const hard: Signal = { code: 'auto.webdriver', group: 'A', target: 'bot', llr: 9, hard: true };
     const base = { profile: 'generic' as const, action: 'pageview', behaviorReliability: 1, driveReliability: 1, sessionId: 'hard-no-shadow' };
     const v = fuse({ ...base, signals: [hard], sig: DEFAULT_SIGNATURES });
-    expect(v.probability.bot).toBeGreaterThan(0.98);
+    // Controller-only evidence without deliberate driving: a certain bot.
+    expect(1 - v.probability.human).toBeGreaterThanOrEqual(0.99);
     expect(v.class).toBe('bot');
+  });
+});
+
+describe('attribution in the verdict', () => {
+  const base = { profile: 'generic' as const, action: 'pageview', sig: DEFAULT_SIGNATURES, behaviorReliability: 0, sessionId: 'roles' };
+  const PLAYWRIGHT: Signal = { code: 'global.playwright', group: 'A', target: 'bot', llr: 9, hard: true, agentId: 'playwright.automation' };
+  const WEBDRIVER: Signal = { code: 'auto.webdriver', group: 'A', target: 'bot', llr: 9, hard: true };
+  const CLAUDEBOT_UA: Signal = { code: 'ua.declared_agent:ClaudeBot', group: 'H', target: 'bot', llr: 4, family: 'claude', agentId: 'anthropic.claudebot' };
+  const ANTHROPIC_IP: Signal = { code: 'verified.ip_range:anthropic', group: 'H', target: 'bot', llr: 5, family: 'claude' };
+  const permutations = <Item,>(items: readonly Item[]): Item[][] =>
+    items.length <= 1 ? [[...items]] : items.flatMap((item, index) => permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [item, ...rest]));
+
+  it('attributes ClaudeBot on Anthropic IPs in a Playwright browser identically in every signal order', () => {
+    const verdicts = permutations([PLAYWRIGHT, WEBDRIVER, CLAUDEBOT_UA, ANTHROPIC_IP]).map((signals) => fuse({ ...base, signals, catalog: catalogRoles }));
+    for (const v of verdicts) {
+      expect(v.class).toBe('bot');
+      expect(v.agent).toEqual({
+        family: 'claude', id: 'anthropic.claudebot', verified: true, method: 'verified.ip_range:anthropic', operator: 'anthropic', controller: 'playwright.automation',
+      });
+      expect({ ...v, ts: 0 }).toEqual({ ...verdicts[0], ts: 0 });
+    }
+  });
+
+  it('keeps an idle automation tool a certain bot, above the SDK blocking thresholds', () => {
+    for (const signals of [[WEBDRIVER], [PLAYWRIGHT], [PLAYWRIGHT, WEBDRIVER]]) {
+      const idle = fuse({ ...base, signals });
+      expect(idle.class).toBe('bot');
+      expect(idle.probability.bot).toBeGreaterThanOrEqual(0.9);
+      expect(idle.probability.human).toBeLessThanOrEqual(0.01);
+      expect(idle.confidence).toBe(0.99);
+    }
+    // Recommendations follow non-human probability, so they are unchanged.
+    expect(fuse({ ...base, action: 'signup', signals: [PLAYWRIGHT] }).recommendation).toBe('deny');
+  });
+
+  it('keeps a scripted automation run a bot when drive evidence has no human-like rhythm', () => {
+    const scripted = fuse({
+      ...base, behaviorReliability: 1, driveReliability: 1,
+      signals: [PLAYWRIGHT, { code: 'drive.x', group: 'D', target: 'agent', llr: 2 }, { code: 'cadence.x', group: 'C', target: 'agent', llr: 1 }],
+    });
+    expect(scripted.scores.driving).toBeGreaterThan(0.85);
+    expect(scripted.class).toBe('bot');
+    expect(scripted.probability).toEqual({ human: 0.004, bot: 0.99, agent: 0.006 });
+  });
+
+  it('calls an automation tool with strong driving and rhythm an agent', () => {
+    const driven = fuse({
+      ...base, behaviorReliability: 1, driveReliability: 1,
+      signals: [PLAYWRIGHT, { code: 'drive.x', group: 'D', target: 'agent', llr: 3 }, { code: 'rhythm.think_then_act', group: 'R', target: 'agent', llr: 2.2 }],
+    });
+    expect(driven.class).toBe('agent');
+    expect(driven.probability).toEqual({ human: 0.004, bot: 0.006, agent: 0.99 });
+    expect(driven.agent).toEqual({ family: 'unknown', verified: false, method: 'behavioral', controller: 'playwright.automation' });
+  });
+
+  it('leaves verified-agent verdicts unchanged', () => {
+    const signed: Signal = { code: 'verified.web_bot_auth', group: 'H', target: 'agent', llr: 9, hard: true, family: 'openai', agentId: 'openai.chatgpt-agent', detail: 'chatgpt.com' };
+    const v = fuse({ ...base, signals: [PLAYWRIGHT, signed], catalog: catalogRoles });
+    expect(v.class).toBe('agent');
+    expect(v.probability).toEqual({ human: 0.004, bot: 0.006, agent: 0.99 });
+    expect(v.agent).toEqual({
+      family: 'openai', id: 'openai.chatgpt-agent', verified: true, method: 'verified.web_bot_auth', operator: 'openai', controller: 'playwright.automation',
+    });
+  });
+
+  it('attributes with the browser fingerprints by default, where header evidence names no product', () => {
+    const marker: Signal = { code: 'marker.claude_active', group: 'A', target: 'agent', llr: 9, hard: true, family: 'claude', agentId: 'anthropic.claude-in-chrome' };
+    expect(fuse({ ...base, signals: [CLAUDEBOT_UA, marker] }).agent).toEqual({
+      family: 'claude', id: 'anthropic.claude-in-chrome', verified: false, method: 'marker.claude_active', operator: 'anthropic',
+    });
   });
 });
