@@ -10,5 +10,15 @@ const show = (v: Verdict): void => {
 };
 
 const engine = createEngine(window, { onVerdict: show });
-engine.ready.then(show, () => {});
+
+// Show the first full verdict as soon as the async probes finish; the interval below keeps it fresh.
+async function showWhenReady(): Promise<void> {
+  try {
+    show(await engine.ready);
+  } catch {
+    // The engine never rejects `ready`; nothing to show if it somehow does.
+  }
+}
+
+void showWhenReady();
 setInterval(() => show(engine.verdict()), 2000);
