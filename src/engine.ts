@@ -109,8 +109,16 @@ export function createEngine(w: Window & typeof globalThis, opts: EngineOptions 
   const stopMarkers = watchMarkers(w.document, sig, (hits) => { addDyn(hits); emit(); });
 
   const device: DeviceFacts = deviceFacts(w);
+  // Best-effort: a probe failure must never keep `ready` from resolving.
+  const probeEnvironment = async (): Promise<Signal[]> => {
+    try {
+      return await asyncEnvProbes(w, ctx);
+    } catch {
+      return [];
+    }
+  };
   const ready = (async () => {
-    addDyn(await asyncEnvProbes(w, ctx).catch(() => []));
+    addDyn(await probeEnvironment());
     const ch = await clientHints(w);
     if (ch) device.ch = ch;
     return emit();
