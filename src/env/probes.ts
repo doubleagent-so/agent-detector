@@ -108,8 +108,12 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
   const soft = ctx.privacyMode !== 'none' ? 0.3 : 1; // privacy browsers lie on purpose
 
   // WebGL renderer: software rasterisers are typical of headless/cloud VMs.
-  const gl = webglInfo(w);
-  if (gl) {
+  const webgl = (): void => {
+    const gl = webglInfo(w);
+    if (!gl) {
+      if (ctx.engine === 'blink' && !ctx.mobile) out.push({ code: 'env.no_webgl', group: 'E', target: 'both', llr: 1 * soft });
+      return;
+    }
     if (/SwiftShader|llvmpipe|softpipe|Mesa OffScreen|Microsoft Basic Render/i.test(gl.renderer)) {
       out.push({ code: 'env.webgl_software', group: 'E', target: 'both', llr: 2.2 * soft, detail: gl.renderer });
     }
@@ -117,9 +121,8 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
     if ((win && /Apple (M\d|GPU)/.test(gl.renderer)) || (mac && /Direct3D|D3D11/.test(gl.renderer))) {
       out.push({ code: 'env.gpu_platform_mismatch', group: 'E', target: 'bot', llr: 3 * soft, detail: gl.renderer });
     }
-  } else if (ctx.engine === 'blink' && !ctx.mobile) {
-    out.push({ code: 'env.no_webgl', group: 'E', target: 'both', llr: 1 * soft });
-  }
+  };
+  webgl();
 
   // Browser chrome: headless/kiosk windows have outer == inner.
   safe(() => {
@@ -143,13 +146,16 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
   }, undefined);
 
   // Hardware oddities.
-  const hc = nav.hardwareConcurrency;
-  if (hc && ![1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 64, 96, 128].includes(hc)) {
-    out.push({ code: 'env.odd_cpu_count', group: 'E', target: 'both', llr: 1.5 * soft, detail: String(hc) });
-  }
-  if (!ctx.mobile && /Linux x86_64/.test(ua) && nav.maxTouchPoints >= 5) {
-    out.push({ code: 'env.touch_on_linux_desktop', group: 'E', target: 'both', llr: 1.5 });
-  }
+  const hardware = (): void => {
+    const hc = nav.hardwareConcurrency;
+    if (hc && ![1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 64, 96, 128].includes(hc)) {
+      out.push({ code: 'env.odd_cpu_count', group: 'E', target: 'both', llr: 1.5 * soft, detail: String(hc) });
+    }
+    if (!ctx.mobile && /Linux x86_64/.test(ua) && nav.maxTouchPoints >= 5) {
+      out.push({ code: 'env.touch_on_linux_desktop', group: 'E', target: 'both', llr: 1.5 });
+    }
+  };
+  hardware();
 
   // An empty plugin list is normal when inline PDF viewing is disabled (HTML spec).
   safe(() => {
