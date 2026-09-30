@@ -11,7 +11,8 @@ const DRIVERS = new Set(['wh', 'tm', 'dn', 'kd']);
  * Scroll bursts (FP-Agent §5.3.2): agents jump straight to an element or scroll in identical steps;
  * people scroll longer, uneven distances. `ev` holds trusted events only.
  */
-export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number): { signals: Signal[]; vector: Record<string, number> } {
+/** Scroll events up to each scroll end, as bursts with their distance in viewport heights. */
+function burstsOf(ev: readonly TraceEvent[]): Burst[] {
   const bursts: Burst[] = [];
   let prev: number | undefined;
   let first: TraceEvent | undefined, lastSc: TraceEvent | undefined, n = 0;
@@ -22,12 +23,21 @@ export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number)
     if (first && lastSc && prev !== undefined && (event.h ?? 0) > 0) bursts.push({ t0: first.t, t1: lastSc.t, n, d: Math.abs(event.sy - prev) / event.h! });
     prev = event.sy; first = lastSc = undefined; n = 0;
   }
+  return bursts;
+}
+
+/** A single-event burst of half a viewport or more, with no input before it (while the trace is complete). */
+const isJump = (burst: Burst, drivers: readonly TraceEvent[], completeSince: number): boolean =>
+  burst.d >= 0.5 && burst.n <= 1 && burst.t0 >= 1000 && burst.t0 - 400 > completeSince && !drivers.some((x) => x.t <= burst.t0 && x.t >= burst.t0 - 400);
+
+export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number): { signals: Signal[]; vector: Record<string, number> } {
+  const bursts = burstsOf(ev);
   const signals: Signal[] = [];
   if (!bursts.length) return { signals, vector: {} };
 
   const drivers = ev.filter((event) => DRIVERS.has(event.k));
   const dist = bursts.map((burst) => burst.d);
-  const jumps = bursts.filter((burst, i) => dist[i] >= 0.5 && burst.n <= 1 && burst.t0 >= 1000 && burst.t0 - 400 > completeSince && !drivers.some((x) => x.t <= burst.t0 && x.t >= burst.t0 - 400)).length;
+  const jumps = bursts.filter((burst) => isJump(burst, drivers, completeSince)).length;
   const vector = {
     scroll_bursts: bursts.length,
     scroll_dist_median: r3(median(dist)),
