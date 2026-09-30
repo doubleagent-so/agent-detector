@@ -86,11 +86,8 @@ export function assessConduct(input: ConductInput): { behavior: BehaviorAssessme
   const denied = matches.find((rule) => rule.effect === 'deny');
   // Wildcard allow still requires a verified identity: unknown clients cannot self-enrol as friendly.
   const allowed = identity ? matches.find((rule) => rule.effect === 'allow') : undefined;
-  const authorization: AuthorizationAssessment = denied
-    ? { decision: 'denied', ruleId: denied.id }
-    : allowed
-      ? { decision: 'allowed', ruleId: allowed.id }
-      : { decision: 'unknown' };
+  let authorization: AuthorizationAssessment = allowed ? { decision: 'allowed', ruleId: allowed.id } : { decision: 'unknown' };
+  if (denied) authorization = { decision: 'denied', ruleId: denied.id };
   if (denied) add('policy.action_denied', 'policy', 'violation', 90);
   for (const signal of input.signals.filter((candidate) => candidate.group === 'H')) {
     // A cryptographic mismatch is stronger than expiry, network failure or missing key material.
@@ -118,10 +115,11 @@ export function assessConduct(input: ConductInput): { behavior: BehaviorAssessme
   const rogue = reasons.some((reason) => reason.severity === 'violation');
   const friendly = !rogue && allowed && reasons.length === 0 && (!input.integrity || input.integrity.trust >= 0.7);
   if (friendly) add('policy.authorized_identity', 'policy', 'info', 0);
+  const calmLabel = friendly ? 'friendly' : 'neutral';
   return {
     behavior: {
       version: 1,
-      label: rogue ? 'rogue' : friendly ? 'friendly' : 'neutral',
+      label: rogue ? 'rogue' : calmLabel,
       risk,
       source: 'server',
       scope: 'observation',

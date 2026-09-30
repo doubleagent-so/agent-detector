@@ -22,13 +22,34 @@ export interface EnvContext {
   engine: 'blink' | 'gecko' | 'webkit' | 'unknown';
 }
 
+function engineOf(ua: string): EnvContext['engine'] {
+  if (/Firefox\//.test(ua)) return 'gecko';
+  if (/Chrome\/|Chromium\/|Edg\//.test(ua)) return 'blink';
+  return /AppleWebKit/.test(ua) ? 'webkit' : 'unknown';
+}
+
+/** eval.toString().length for the engine; `actual` when the engine is unknown. */
+function evalLength(engine: EnvContext['engine'], actual: number): number {
+  if (engine === 'blink') return 33;
+  return engine === 'unknown' ? actual : 37;
+}
+
+function platformOf(ua: string): string {
+  if (/Windows/.test(ua)) return 'Windows';
+  if (/Mac OS X/.test(ua)) return 'macOS';
+  if (/Android/.test(ua)) return 'Android';
+  if (/CrOS/.test(ua)) return 'Chrome OS';
+  return /Linux/.test(ua) ? 'Linux' : '';
+}
+
 export function envContext(w: W): EnvContext {
   const nav = w.navigator as Navigator & { brave?: unknown; userAgentData?: { mobile?: boolean } };
   const ua = nav.userAgent || '';
-  const engine = /Firefox\//.test(ua) ? 'gecko' : /Chrome\/|Chromium\/|Edg\//.test(ua) ? 'blink' : /AppleWebKit/.test(ua) ? 'webkit' : 'unknown';
+  const engine = engineOf(ua);
   // Firefox resistFingerprinting clamps timers to ≥ 16.67ms/100ms and forces UTC.
   const rfp = engine === 'gecko' && safe(() => new Date().getTimezoneOffset() === 0 && w.screen.width % 200 === 0 && w.innerWidth % 200 === 0, false);
-  const privacyMode = nav.brave ? 'brave' : rfp ? 'rfp' : 'none';
+  const firefoxMode = rfp ? 'rfp' : 'none';
+  const privacyMode = nav.brave ? 'brave' : firefoxMode;
   const mobile = nav.userAgentData?.mobile ?? /Mobi|Android|iPhone|iPad/.test(ua);
   return { privacyMode, mobile, engine };
 }
@@ -160,7 +181,7 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
   safe(() => {
     // eslint-disable-next-line no-eval -- reads eval's source length as an engine fingerprint; never calls it
     const n = eval.toString().length;
-    const expected = ctx.engine === 'blink' ? 33 : ctx.engine === 'gecko' ? 37 : ctx.engine === 'webkit' ? 37 : n;
+    const expected = evalLength(ctx.engine, n);
     if (ctx.engine !== 'unknown' && n !== expected && !(ctx.engine === 'webkit' && n === 39)) {
       out.push({ code: 'env.engine_mismatch', group: 'E', target: 'bot', llr: 3, detail: `eval.len=${n}` });
     }
@@ -211,7 +232,7 @@ export async function asyncEnvProbes(w: W, ctx: EnvContext): Promise<Signal[]> {
     try {
       const h = await nav.userAgentData.getHighEntropyValues(['platform', 'fullVersionList']);
       const plat: string = h.platform || '';
-      const uaPlat = /Windows/.test(ua) ? 'Windows' : /Mac OS X/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /CrOS/.test(ua) ? 'Chrome OS' : /Linux/.test(ua) ? 'Linux' : '';
+      const uaPlat = platformOf(ua);
       if (plat && uaPlat && plat !== uaPlat) {
         out.push({ code: 'env.client_hints_platform_mismatch', group: 'E', target: 'bot', llr: 3.5, detail: `${plat}≠${uaPlat}` });
       }

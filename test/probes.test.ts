@@ -15,7 +15,10 @@ function fakeWin(o: { nav?: Any; win?: Any; renderer?: string | null; ext?: bool
   const renderer = o.renderer === undefined ? 'ANGLE (NVIDIA GeForce RTX 3080)' : o.renderer;
   const gl = renderer === null ? null : {
     VENDOR: 1, RENDERER: 2,
-    getExtension: (n: string) => (n === 'WEBGL_debug_renderer_info' ? (o.ext === false ? null : { UNMASKED_VENDOR_WEBGL: 3, UNMASKED_RENDERER_WEBGL: 4 }) : n === 'WEBGL_lose_context' ? { loseContext: vi.fn() } : null),
+    getExtension: (n: string) => {
+      if (n === 'WEBGL_debug_renderer_info') return o.ext === false ? null : { UNMASKED_VENDOR_WEBGL: 3, UNMASKED_RENDERER_WEBGL: 4 };
+      return n === 'WEBGL_lose_context' ? { loseContext: vi.fn() } : null;
+    },
     getParameter: (p: number) => (p === 1 || p === 3 ? 'Google Inc.' : renderer),
   };
   const nav = Object.assign(Object.create(o.navProto ?? {}), {

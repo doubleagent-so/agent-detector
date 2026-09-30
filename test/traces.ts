@@ -125,6 +125,9 @@ export function humanMobile(seed = 4): TraceEvent[] {
 }
 
 /** BeCAPTCHA-Mouse function-based bot (§3.2.1): path shape × speed profile, sampled at 60 Hz, no noise. */
+const EASE = { constant: (u: number) => u, log: (u: number) => u * u, gauss: (u: number) => (1 - Math.cos(Math.PI * u)) / 2 };
+const BEND = { linear: () => 0, quadratic: (s: number) => 4 * s * (1 - s), exponential: (s: number) => (Math.exp(3 * s) - 1) / (Math.exp(3) - 1) - s };
+
 export function functionBot(seed = 5, shape: 'linear' | 'quadratic' | 'exponential' = 'quadratic', speed: 'constant' | 'log' | 'gauss' = 'constant'): TraceEvent[] {
   const r = rng(seed);
   const ev: TraceEvent[] = [];
@@ -134,8 +137,8 @@ export function functionBot(seed = 5, shape: 'linear' | 'quadratic' | 'exponenti
     const n = 25 + Math.floor(r() * 15);
     for (let i = 0; i <= n; i++) {
       const u = i / n;
-      const s = speed === 'constant' ? u : speed === 'log' ? u * u : (1 - Math.cos(Math.PI * u)) / 2;
-      const bend = shape === 'linear' ? 0 : shape === 'quadratic' ? 4 * s * (1 - s) : (Math.exp(3 * s) - 1) / (Math.exp(3) - 1) - s;
+      const s = EASE[speed](u);
+      const bend = BEND[shape](s);
       t += 16.7;
       ev.push({ k: 'mv', t, x: x0 + (x1 - x0) * s - (y1 - y0) * bend * 0.25, y: y0 + (y1 - y0) * s + (x1 - x0) * bend * 0.25, pt: 'm', co: 1 });
     }

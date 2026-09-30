@@ -13,8 +13,10 @@ const EXPORTS = [
 ];
 
 const sources = (dir: URL): URL[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? sources(new URL(`${e.name}/`, dir)) : e.name.endsWith('.ts') ? [new URL(e.name, dir)] : []);
+  readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    if (e.isDirectory()) return sources(new URL(`${e.name}/`, dir));
+    return e.name.endsWith('.ts') ? [new URL(e.name, dir)] : [];
+  });
 
 describe('public API', () => {
   it('exports exactly the published names', () => {
