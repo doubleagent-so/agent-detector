@@ -2,9 +2,10 @@
 // The async environment probes catch their own errors, but anything unexpected that escapes them
 // (a throwing worker probe, a future probe without a guard) must not keep `engine.ready` from resolving.
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type * as Probes from '../src/env/probes.ts';
 
 vi.mock('../src/env/probes.ts', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../src/env/probes.ts')>();
+  const original = await importOriginal<typeof Probes>();
   return { ...original, asyncEnvProbes: () => Promise.reject(new Error('probe crashed')) };
 });
 

@@ -8,7 +8,7 @@ import type { Signal, Signatures } from '../types.ts';
 export function scanMarkers(doc: Document, sig: Signatures): Signal[] {
   const out: Signal[] = [];
   for (const m of sig.markers) {
-    let el: Element | null = null;
+    let el: Element | null;
     try { el = doc.querySelector(m.selector); } catch { continue; }
     if (el) {
       out.push({
