@@ -51,7 +51,8 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   const inputs = ev.filter((event) => event.k === 'in');
   const touches = ev.filter((event) => event.k === 'ts');
   const mouseDowns = downs.filter((down) => down.pt === 'm');
-  const pointer: BehaviorStats['pointer'] = touches.length > mouseDowns.length ? 'touch' : moves.length || mouseDowns.length ? 'mouse' : 'none';
+  const pointerSeen = moves.length || mouseDowns.length ? 'mouse' : 'none';
+  const pointer: BehaviorStats['pointer'] = touches.length > mouseDowns.length ? 'touch' : pointerSeen;
 
   const nActions = ev.filter((event) => ACTION_KINDS.has(event.k)).length;
   const reliability = Math.min(1, nActions / 12) * Math.min(1, nowMs / 8000);

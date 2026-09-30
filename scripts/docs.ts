@@ -21,8 +21,10 @@ const GROUPS: Record<Group, string> = {
 interface Row { code: string; group: Group; target: string; llr: Set<string>; hard: boolean; files: Set<string> }
 
 const sources = (dir: URL): URL[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? sources(new URL(`${e.name}/`, dir)) : e.name.endsWith('.ts') ? [new URL(e.name, dir)] : []);
+  readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    if (e.isDirectory()) return sources(new URL(`${e.name}/`, dir));
+    return e.name.endsWith('.ts') ? [new URL(e.name, dir)] : [];
+  });
 
 /** Every signal the engine can emit: literals in probes and features, plus the catalog's markers and globals. */
 export function collectSignals(): Row[] {

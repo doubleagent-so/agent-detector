@@ -39,7 +39,7 @@ export interface FuseInput {
 
 const logit = (probability: number) => Math.log(probability / (1 - probability));
 const sigm = (x: number) => 1 / (1 + Math.exp(-x));
-const byCode = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+const byCode = (left: string, right: string): number => Number(left > right) - Number(left < right);
 /** Strongest evidence first; the code breaks ties, so a choice never depends on signal order. */
 const strongestFirst = (left: Signal, right: Signal): number => right.llr - left.llr || byCode(left.code, right.code);
 
@@ -92,7 +92,7 @@ export function fuse(inp: FuseInput): Verdict {
   if (hard.length) {
     const agentHard = hard.some((signal) => signal.target === 'agent');
     // An agent marker wins; a verified identity is a bot; an automation tool alone depends on its driving.
-    const winner: VerdictClass = agentHard ? 'agent' : verified ? 'bot' : automationWinner(drivingScore, sums.agent);
+    const winner: VerdictClass = agentHard ? 'agent' : hardWinner(!!verified, drivingScore, sums.agent);
     probability = winner === 'agent'
       ? { human: 0.004, bot: 0.006, agent: 0.99 }
       : { human: 0.004, bot: 0.99, agent: 0.006 };
@@ -149,6 +149,11 @@ export function fuse(inp: FuseInput): Verdict {
  * makes it an agent: scripted runs can look driven, but not deliberate. Otherwise it stays a bot,
  * at full certainty, since SDK blocking thresholds read `probability.bot`.
  */
+/** Without an agent marker: a verified identity is a bot; an automation tool alone depends on its driving. */
+function hardWinner(verified: boolean, drivingScore: number, agentSums: Partial<Record<Group, number>>): VerdictClass {
+  return verified ? 'bot' : automationWinner(drivingScore, agentSums);
+}
+
 function automationWinner(drivingScore: number, agentSums: Partial<Record<Group, number>>): VerdictClass {
   const rhythm = agentSums.R ?? 0;
   return drivingScore > 0.85 && rhythm > 1 ? 'agent' : 'bot';

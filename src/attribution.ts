@@ -87,7 +87,7 @@ interface Candidate extends RoleClaim {
   llr: number;
 }
 
-const byText = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+const byText = (left: string, right: string): number => Number(left > right) - Number(left < right);
 const strongest = (rank: Readonly<Record<Evidence, number>>) => (left: Candidate, right: Candidate): number =>
   rank[left.evidence] - rank[right.evidence] || right.llr - left.llr || byText(left.id, right.id) || byText(left.source, right.source);
 

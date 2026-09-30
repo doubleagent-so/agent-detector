@@ -9,6 +9,29 @@ export interface CollectorOptions {
   now?: () => number;
 }
 
+function pointerKind(type: string): 'm' | 't' | 'p' {
+  if (type === 'touch') return 't';
+  return type === 'pen' ? 'p' : 'm';
+}
+
+/** Editing (b, t, e), paste (v) and navigation (n) keys; other keys are undefined. */
+function specialKey(event: KeyboardEvent, code: string): TraceEvent['sp'] {
+  if (code === 'Backspace' || code === 'Delete') return 'b';
+  if (code === 'Tab') return 't';
+  if (code === 'Enter') return 'e';
+  if ((event.ctrlKey || event.metaKey) && (code === 'KeyV' || event.key === 'v')) return 'v';
+  return /^(Space|PageDown|PageUp|Arrow|Home|End)/.test(code) ? 'n' : undefined;
+}
+
+/** An inputType as typed (t), pasted (p), replaced (r), deleted (d), composed (c) or other (o). */
+function inputKind(type: string): NonNullable<TraceEvent['it']> {
+  if (type === 'insertText') return 't';
+  if (type === 'insertFromPaste') return 'p';
+  if (type === 'insertReplacementText' || type === '') return 'r';
+  if (type.startsWith('delete')) return 'd';
+  return type.includes('Composition') ? 'c' : 'o';
+}
+
 const hashCode = (text: string): number => {
   let h = 0;
   for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
@@ -60,7 +83,7 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
     const ins = chromeInset();
     return event.screenX === event.clientX && event.screenY === event.clientY && (ins.y > 30 || ins.x > 30);
   };
-  const ptype = (event: PointerEvent): 'm' | 't' | 'p' => (event.pointerType === 'touch' ? 't' : event.pointerType === 'pen' ? 'p' : 'm');
+  const ptype = (event: PointerEvent): 'm' | 't' | 'p' => pointerKind(event.pointerType);
   let mousePress: { id: number; at: number } | undefined;
 
   on(w, 'pointermove', (event: PointerEvent) => {
@@ -94,9 +117,7 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   on(w, 'keydown', (event: KeyboardEvent) => {
     if (event.repeat) return;
     const code = event.code || event.key || '';
-    const sp = code === 'Backspace' || code === 'Delete' ? 'b' : code === 'Tab' ? 't' : code === 'Enter' ? 'e'
-      : (event.ctrlKey || event.metaKey) && (code === 'KeyV' || event.key === 'v') ? 'v'
-      : /^(Space|PageDown|PageUp|Arrow|Home|End)/.test(code) ? 'n' : undefined;
+    const sp = specialKey(event, code);
     push(event, { k: 'kd', ks: hashCode(code), mod: event.ctrlKey || event.metaKey || event.altKey || undefined, sp, composing: event.isComposing || undefined });
   });
   on(w, 'keyup', (event: KeyboardEvent) => push(event, { k: 'ku', ks: hashCode(event.code || event.key || ''), composing: event.isComposing || undefined }));
@@ -107,8 +128,7 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
     const el = event.target as HTMLElement;
     const card = opts.pciLite && isEditable(el) && isCardField(el);
     const t = event.inputType || '';
-    const it = event.isComposing ? 'c' : t === 'insertText' ? 't' : t === 'insertFromPaste' ? 'p' : t === 'insertReplacementText' || t === '' ? 'r'
-      : t.startsWith('delete') ? 'd' : t.includes('Composition') ? 'c' : 'o';
+    const it = event.isComposing ? 'c' : inputKind(t);
     if (isEditable(el)) lastBefore.set(fieldSlot(el), at(event));
     push(event, { k: 'in', it, n: card ? undefined : (event.data?.length ?? 0) });
   });
