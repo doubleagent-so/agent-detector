@@ -54,7 +54,7 @@ export function hardProbes(w: W, sig: Signatures): Signal[] {
   if (/HeadlessChrome/.test(ua)) out.push({ code: 'auto.headless_ua', group: 'A', target: 'bot', llr: 9, hard: true, detail: 'HeadlessChrome UA' });
   safe(() => {
     const brands = (nav as Navigator & { userAgentData?: { brands?: { brand: string }[] } }).userAgentData?.brands;
-    if (brands?.some((b) => /Headless/i.test(b.brand))) {
+    if (brands?.some((brand) => /Headless/i.test(brand.brand))) {
       out.push({ code: 'auto.headless_brand', group: 'A', target: 'bot', llr: 9, hard: true });
     }
   }, undefined);
@@ -112,9 +112,9 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
 
   // Known agent VM resolutions (FP-Agent, arXiv 2605.01247). Weak alone: many humans share them.
   safe(() => {
-    const r = `${w.screen.width}x${w.screen.height}`;
-    if (['1280x960', '1280x1100', '1024x768', '800x600'].includes(r) && !ctx.mobile) {
-      out.push({ code: 'env.agent_vm_resolution', group: 'E', target: 'agent', llr: 0.8, detail: r });
+    const resolution = `${w.screen.width}x${w.screen.height}`;
+    if (['1280x960', '1280x1100', '1024x768', '800x600'].includes(resolution) && !ctx.mobile) {
+      out.push({ code: 'env.agent_vm_resolution', group: 'E', target: 'agent', llr: 0.8, detail: resolution });
     }
     if (!ctx.mobile && w.screen.availHeight === w.screen.height && /Windows|Mac OS X/.test(ua)) {
       out.push({ code: 'env.no_taskbar', group: 'E', target: 'both', llr: 0.4 * soft });
@@ -189,8 +189,8 @@ export function webglInfo(w: W): { vendor: string; renderer: string } | null {
 
 function readWebgl(w: W): { vendor: string; renderer: string } | null {
   return safe(() => {
-    const c = w.document.createElement('canvas');
-    const gl = (c.getContext('webgl') || c.getContext('experimental-webgl')) as WebGLRenderingContext | null;
+    const canvas = w.document.createElement('canvas');
+    const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return null;
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     const vendor = String(ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR));
@@ -215,10 +215,10 @@ export async function asyncEnvProbes(w: W, ctx: EnvContext): Promise<Signal[]> {
       if (plat && uaPlat && plat !== uaPlat) {
         out.push({ code: 'env.client_hints_platform_mismatch', group: 'E', target: 'bot', llr: 3.5, detail: `${plat}≠${uaPlat}` });
       }
-      const chrome = (h.fullVersionList as { brand: string; version: string }[] | undefined)?.find((b) => /Chromium|Google Chrome/.test(b.brand));
-      const m = ua.match(/Chrome\/(\d+)/);
-      if (chrome && m && chrome.version.split('.')[0] !== m[1]) {
-        out.push({ code: 'env.client_hints_version_mismatch', group: 'E', target: 'bot', llr: 3, detail: `${chrome.version}≠${m[1]}` });
+      const chrome = (h.fullVersionList as { brand: string; version: string }[] | undefined)?.find((brand) => /Chromium|Google Chrome/.test(brand.brand));
+      const match = ua.match(/Chrome\/(\d+)/);
+      if (chrome && match && chrome.version.split('.')[0] !== match[1]) {
+        out.push({ code: 'env.client_hints_version_mismatch', group: 'E', target: 'bot', llr: 3, detail: `${chrome.version}≠${match[1]}` });
       }
     } catch { /* ignore */ }
   }
@@ -252,7 +252,7 @@ function workerNavigator(w: W): Promise<{ ua: string; hc: number; lang: string }
       const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
       const wk = new w.Worker(url);
       const t = setTimeout(() => { wk.terminate(); resolve(null); }, 1000);
-      wk.onmessage = (e) => { clearTimeout(t); wk.terminate(); URL.revokeObjectURL(url); resolve(e.data); };
+      wk.onmessage = (event) => { clearTimeout(t); wk.terminate(); URL.revokeObjectURL(url); resolve(event.data); };
       wk.onerror = () => { clearTimeout(t); resolve(null); };
     } catch { resolve(null); } // CSP may forbid blob workers
   });

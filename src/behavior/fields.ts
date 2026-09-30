@@ -9,14 +9,14 @@ const EXPLAINS = new Set(['dn', 'kd', 'in', 'ps', 'ts', 'wh']);
  * preceding second, after page load. Needs the raw trace, because untrusted events are the evidence here.
  */
 export function fieldFeatures(trace: readonly TraceEvent[], completeSince: number): { signals: Signal[]; vector: Record<string, number> } {
-  const explaining = trace.filter((e) => !e.u && EXPLAINS.has(e.k));
+  const explaining = trace.filter((event) => !event.u && EXPLAINS.has(event.k));
   const orphanFields = new Set<number>();
   let synthetic = 0;
-  for (const e of trace) {
-    if (!e.u || (e.k !== 'iv' && e.k !== 'ch') || e.fs === undefined) continue;
+  for (const event of trace) {
+    if (!event.u || (event.k !== 'iv' && event.k !== 'ch') || event.fs === undefined) continue;
     synthetic++;
-    if (e.t < 1500 || e.t - 1000 <= completeSince) continue;
-    if (!explaining.some((x) => x.t <= e.t && x.t >= e.t - 1000)) orphanFields.add(e.fs);
+    if (event.t < 1500 || event.t - 1000 <= completeSince) continue;
+    if (!explaining.some((x) => x.t <= event.t && x.t >= event.t - 1000)) orphanFields.add(event.fs);
   }
   const signals: Signal[] = [];
   if (orphanFields.size >= 2) signals.push({ code: 'drive.synthetic_field_fill', group: 'D', target: 'agent', llr: 2, detail: `${orphanFields.size} script-set fields` });

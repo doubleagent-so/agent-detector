@@ -7,13 +7,13 @@ import type { Signal, Signatures } from '../types.ts';
  */
 export function scanMarkers(doc: Document, sig: Signatures): Signal[] {
   const out: Signal[] = [];
-  for (const m of sig.markers) {
+  for (const marker of sig.markers) {
     let el: Element | null;
-    try { el = doc.querySelector(m.selector); } catch { continue; }
+    try { el = doc.querySelector(marker.selector); } catch { continue; }
     if (el) {
       out.push({
-        code: m.code, group: 'A', target: m.target, family: m.family, ...(m.agentId ? { agentId: m.agentId } : {}),
-        llr: m.llr ?? 9, hard: (m.llr ?? 9) >= 8, detail: m.selector.split(',')[0],
+        code: marker.code, group: 'A', target: marker.target, family: marker.family, ...(marker.agentId ? { agentId: marker.agentId } : {}),
+        llr: marker.llr ?? 9, hard: (marker.llr ?? 9) >= 8, detail: marker.selector.split(',')[0],
       });
     }
   }
@@ -25,8 +25,8 @@ export function watchMarkers(doc: Document, sig: Signatures, onHit: (s: Signal[]
   let timer: ReturnType<typeof setTimeout> | undefined;
   const check = () => {
     timer = undefined;
-    const hits = scanMarkers(doc, sig).filter((s) => !found.has(s.code));
-    hits.forEach((s) => found.add(s.code));
+    const hits = scanMarkers(doc, sig).filter((signal) => !found.has(signal.code));
+    hits.forEach((signal) => found.add(signal.code));
     if (hits.length) onHit(hits);
   };
   check();

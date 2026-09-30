@@ -83,8 +83,8 @@ export class Ring {
     this.cap = cap;
     this.moveCap = moveCap;
   }
-  push(e: TraceEvent): void {
-    if (e.k === 'mv') {
+  push(event: TraceEvent): void {
+    if (event.k === 'mv') {
       // Keep moves bounded separately so long sessions don't evict discrete actions.
       if (this.moves >= this.moveCap) {
         const i = this.buf.findIndex((x) => x.k === 'mv');
@@ -94,7 +94,7 @@ export class Ring {
         }
       } else this.moves++;
     }
-    this.buf.push(e);
+    this.buf.push(event);
     if (this.buf.length > this.cap) {
       const dropped = this.buf.shift();
       if (dropped) this.completeSince = Math.max(this.completeSince, dropped.t + 0.001);

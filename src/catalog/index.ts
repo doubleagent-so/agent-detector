@@ -10,12 +10,12 @@ export { familyOf, familyOfOperator, operatorForHost } from './family.ts';
 export { fingerprintRoles, globalRules, markerRules } from './rules.ts';
 export { FINGERPRINTS, type Fingerprint } from './fingerprinted.ts';
 
-const byId = new Map(CATALOG.map((e) => [e.id, e]));
+const byId = new Map(CATALOG.map((entry) => [entry.id, entry]));
 
 export const catalogEntry = (id: string | undefined): CatalogEntry | undefined => (id ? byId.get(id) : undefined);
 
 /** Signal target for an entry: user-triggered and browser agents are `agent`, everything else `bot`. */
-export const targetOf = (e: CatalogEntry): Target => e.class;
+export const targetOf = (entry: CatalogEntry): Target => entry.class;
 
 // Token boundaries: a UA token must not be glued to letters, digits or '-' on either side.
 const compiled = CATALOG.flatMap((entry) =>
@@ -29,8 +29,8 @@ export function matchUserAgent(ua: string | null | undefined): UaMatch | undefin
   if (!ua) return undefined;
   let best: UaMatch | undefined;
   for (const { entry, re } of compiled) {
-    const m = re.exec(ua);
-    if (m && (!best || m[1].length > best.token.length)) best = { entry, token: m[1] };
+    const match = re.exec(ua);
+    if (match && (!best || match[1].length > best.token.length)) best = { entry, token: match[1] };
   }
   return best;
 }
@@ -44,10 +44,10 @@ const hostMatches = (host: string, suffix: string): boolean => host === suffix |
 export function entryForSignatureAgent(origin: string, ua?: string | null, strict = false): CatalogEntry | undefined {
   let host: string;
   try { host = new URL(origin).hostname.toLowerCase(); } catch { return undefined; }
-  const hits = CATALOG.filter((e) => e.identify.signatureAgent?.some((s) => hostMatches(host, s)));
+  const hits = CATALOG.filter((entry) => entry.identify.signatureAgent?.some((signer) => hostMatches(host, signer)));
   if (hits.length <= 1) return hits[0];
   const byUa = matchUserAgent(ua)?.entry;
-  return hits.find((e) => e === byUa) ?? (strict ? undefined : hits[0]);
+  return hits.find((entry) => entry === byUa) ?? (strict ? undefined : hits[0]);
 }
 
 export interface IpListSource extends IpList { entries: CatalogEntry[] }
@@ -56,10 +56,10 @@ export interface IpListSource extends IpList { entries: CatalogEntry[] }
 export function ipListSources(): IpListSource[] {
   const out = new Map<string, IpListSource>();
   for (const entry of CATALOG) {
-    for (const l of entry.identify.ipLists ?? []) {
-      const cur = out.get(l.vendor);
+    for (const list of entry.identify.ipLists ?? []) {
+      const cur = out.get(list.vendor);
       if (cur) cur.entries.push(entry);
-      else out.set(l.vendor, { ...l, entries: [entry] });
+      else out.set(list.vendor, { ...list, entries: [entry] });
     }
   }
   return [...out.values()];
@@ -68,15 +68,15 @@ export function ipListSources(): IpListSource[] {
 const CONTROLLER_SURFACES: ReadonlySet<Surface> = new Set<Surface>(['automation_tool', 'http_library']);
 /** The operator of each published IP list; a list shared across operators would name none. */
 const listOperators = new Map(ipListSources().flatMap((list) => {
-  const operators = new Set(list.entries.map((e) => e.operator));
+  const operators = new Set(list.entries.map((entry) => entry.operator));
   return operators.size === 1 ? [[list.vendor, list.entries[0].operator] as const] : [];
 }));
 
 /** Attribution catalog for servers: every entry, every published IP list, every known signer domain. */
 export const catalogRoles: RoleCatalog = {
   entry: (id) => {
-    const e = byId.get(id);
-    return e && { id: e.id, operator: e.operator, family: familyOf(e), controller: CONTROLLER_SURFACES.has(e.surface) };
+    const entry = byId.get(id);
+    return entry && { id: entry.id, operator: entry.operator, family: familyOf(entry), controller: CONTROLLER_SURFACES.has(entry.surface) };
   },
   ipListOperator: (vendor) => listOperators.get(vendor),
   hostOperator: operatorForHost,

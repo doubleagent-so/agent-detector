@@ -13,27 +13,27 @@ export interface PageContext {
 }
 
 export function detectPage(w: Window, explicit?: Profile): PageContext {
-  const d = w.document;
+  const doc = w.document;
   const hints: string[] = [];
-  const has = (sel: string) => { try { return !!d.querySelector(sel); } catch { return false; } };
-  const scripts = Array.from(d.scripts).map((s) => s.src).join(' ');
+  const has = (sel: string) => { try { return !!doc.querySelector(sel); } catch { return false; } };
+  const scripts = Array.from(doc.scripts).map((script) => script.src).join(' ');
   // Globals set by the page's own scripts (Shopify, Google Publisher Tag, Prebid).
-  const g = w as Window & { Shopify?: unknown; googletag?: unknown; pbjs?: unknown };
+  const globals = w as Window & { Shopify?: unknown; googletag?: unknown; pbjs?: unknown };
 
   const payment = /js\.stripe\.com|braintreegateway|checkoutshopper|adyen|paypal\.com\/sdk/.test(scripts)
     || has('iframe[name^="__privateStripeFrame"], [autocomplete^="cc-"], input[name*="cardnumber" i]');
   if (payment) hints.push('payment');
 
   let profile: Profile = 'generic';
-  if (g.Shopify || /cdn\.shopify\.com/.test(scripts) || has('form[action*="/cart/add"]')) { profile = 'ecommerce'; hints.push('shopify'); }
+  if (globals.Shopify || /cdn\.shopify\.com/.test(scripts) || has('form[action*="/cart/add"]')) { profile = 'ecommerce'; hints.push('shopify'); }
   else if (has('[itemtype*="schema.org/Product"], [data-product-id], .woocommerce, form[action*="add-to-cart"]')) { profile = 'ecommerce'; hints.push('product'); }
-  else if (has('meta[property="og:type"][content="article"]') || g.googletag || g.pbjs) { profile = 'content'; hints.push('article/ads'); }
+  else if (has('meta[property="og:type"][content="article"]') || globals.googletag || globals.pbjs) { profile = 'content'; hints.push('article/ads'); }
   else if (has('.hs-form, form[id^="hsForm_"], form.mktoForm') || /[?&](gclid|fbclid|msclkid)=/.test(w.location.search)) { profile = 'leadgen'; hints.push('leadform'); }
   else if (has('[contenteditable="true"], textarea[name*="comment" i], form[action*="comment"]')) { profile = 'social'; hints.push('ugc'); }
   else if (payment) profile = 'payments';
 
   const path = w.location.pathname.toLowerCase();
-  const pw = d.querySelectorAll('input[type="password"]').length;
+  const pw = doc.querySelectorAll('input[type="password"]').length;
   let action: Action = 'pageview';
   if (payment || /\/checkouts?\b|\/pay\b/.test(path)) action = payment ? 'payment' : 'checkout';
   else if (pw >= 2 || /sign-?up|register|create-account|join/.test(path)) action = 'signup';
@@ -48,4 +48,4 @@ export function detectPage(w: Window, explicit?: Profile): PageContext {
 }
 
 const ACTION_RE = /^[A-Za-z0-9/_]{1,64}$/;
-export const validAction = (a: string): boolean => ACTION_RE.test(a);
+export const validAction = (action: string): boolean => ACTION_RE.test(action);

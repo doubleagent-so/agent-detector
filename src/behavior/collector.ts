@@ -9,16 +9,16 @@ export interface CollectorOptions {
   now?: () => number;
 }
 
-const hashCode = (s: string): number => {
+const hashCode = (text: string): number => {
   let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
   return h & 0xffff;
 };
 
 const isEditable = (el: EventTarget | null): el is HTMLElement => {
-  const e = el as HTMLElement | null;
-  if (!e || !e.tagName) return false;
-  return e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.isContentEditable === true;
+  const element = el as HTMLElement | null;
+  if (!element || !element.tagName) return false;
+  return element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.isContentEditable === true;
 };
 
 // Inputs whose value is typed text. Sliders, checkboxes and pickers fire `input` with no `beforeinput`.
@@ -37,15 +37,15 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   const now = opts.now ?? (() => performance.now() - t0);
   // Dispatch can be delayed by a busy main thread. Use creation timestamps so a
   // queued burst of human input does not look like millisecond automation.
-  const at = (e: Event): number => {
+  const at = (event: Event): number => {
     if (opts.now) return now();
-    const stamp = e.timeStamp;
+    const stamp = event.timeStamp;
     return Number.isFinite(stamp) && stamp >= t0 && stamp <= performance.now()
       ? stamp - t0 : now();
   };
   const doc = w.document;
-  const push = (source: Event, e: Omit<TraceEvent, 't' | 'u'>, t = at(source)) =>
-    ring.push({ ...e, t, u: !source.isTrusted || undefined });
+  const push = (source: Event, fields: Omit<TraceEvent, 't' | 'u'>, t = at(source)) =>
+    ring.push({ ...fields, t, u: !source.isTrusted || undefined });
   const off: (() => void)[] = [];
   const on = <E extends Event>(target: Window | Document, type: string, fn: (e: E) => void) => {
     // Each caller names the event type its listener reads; the DOM hands it that event.
@@ -56,89 +56,89 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
 
   // Chrome frame height used to detect the CDP screenX/Y == clientX/Y artefact.
   const chromeInset = () => ({ x: w.screenX + (w.outerWidth - w.innerWidth), y: w.screenY + (w.outerHeight - w.innerHeight) });
-  const impossibleScreen = (e: MouseEvent) => {
+  const impossibleScreen = (event: MouseEvent) => {
     const ins = chromeInset();
-    return e.screenX === e.clientX && e.screenY === e.clientY && (ins.y > 30 || ins.x > 30);
+    return event.screenX === event.clientX && event.screenY === event.clientY && (ins.y > 30 || ins.x > 30);
   };
-  const ptype = (e: PointerEvent): 'm' | 't' | 'p' => (e.pointerType === 'touch' ? 't' : e.pointerType === 'pen' ? 'p' : 'm');
+  const ptype = (event: PointerEvent): 'm' | 't' | 'p' => (event.pointerType === 'touch' ? 't' : event.pointerType === 'pen' ? 'p' : 'm');
   let mousePress: { id: number; at: number } | undefined;
 
-  on(w, 'pointermove', (e: PointerEvent) => {
+  on(w, 'pointermove', (event: PointerEvent) => {
     let co = -1;
-    try { if (typeof e.getCoalescedEvents === 'function') co = e.getCoalescedEvents().length; } catch { /* unavailable */ }
-    push(e, { k: 'mv', x: e.clientX, y: e.clientY, pt: ptype(e), co, sxm: impossibleScreen(e) || undefined });
+    try { if (typeof event.getCoalescedEvents === 'function') co = event.getCoalescedEvents().length; } catch { /* unavailable */ }
+    push(event, { k: 'mv', x: event.clientX, y: event.clientY, pt: ptype(event), co, sxm: impossibleScreen(event) || undefined });
   });
-  on(w, 'pointerdown', (e: PointerEvent) => {
-    mousePress = e.isTrusted && ptype(e) === 'm' ? { id: e.pointerId, at: now() } : undefined;
-    const el = e.target as Element | null;
+  on(w, 'pointerdown', (event: PointerEvent) => {
+    mousePress = event.isTrusted && ptype(event) === 'm' ? { id: event.pointerId, at: now() } : undefined;
+    const el = event.target as Element | null;
     let ox: number | undefined, oy: number | undefined, wd: number | undefined, ht: number | undefined;
     if (el && typeof el.getBoundingClientRect === 'function') {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) {
-        ox = (e.clientX - (r.left + r.width / 2)) / r.width;
-        oy = (e.clientY - (r.top + r.height / 2)) / r.height;
-        wd = r.width; ht = r.height;
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        ox = (event.clientX - (rect.left + rect.width / 2)) / rect.width;
+        oy = (event.clientY - (rect.top + rect.height / 2)) / rect.height;
+        wd = rect.width; ht = rect.height;
       }
     }
-    push(e, { k: 'dn', x: e.clientX, y: e.clientY, pt: ptype(e), ox, oy, w: wd, h: ht, sxm: impossibleScreen(e) || undefined });
+    push(event, { k: 'dn', x: event.clientX, y: event.clientY, pt: ptype(event), ox, oy, w: wd, h: ht, sxm: impossibleScreen(event) || undefined });
   });
-  on(w, 'pointerup', (e: PointerEvent) => {
-    const holdMs = e.isTrusted && mousePress && mousePress.id === e.pointerId ? now() - mousePress.at : undefined;
+  on(w, 'pointerup', (event: PointerEvent) => {
+    const holdMs = event.isTrusted && mousePress && mousePress.id === event.pointerId ? now() - mousePress.at : undefined;
     mousePress = undefined;
-    push(e, { k: 'up', pt: ptype(e), holdMs });
+    push(event, { k: 'up', pt: ptype(event), holdMs });
   });
   on(w, 'pointercancel', () => { mousePress = undefined; });
-  on(w, 'click', (e: MouseEvent) => push(e, { k: 'ck', x: e.clientX, y: e.clientY, d: e.detail }));
-  on(w, 'contextmenu', (e: Event) => push(e, { k: 'cm' }));
+  on(w, 'click', (event: MouseEvent) => push(event, { k: 'ck', x: event.clientX, y: event.clientY, d: event.detail }));
+  on(w, 'contextmenu', (event: Event) => push(event, { k: 'cm' }));
 
-  on(w, 'keydown', (e: KeyboardEvent) => {
-    if (e.repeat) return;
-    const c = e.code || e.key || '';
-    const sp = c === 'Backspace' || c === 'Delete' ? 'b' : c === 'Tab' ? 't' : c === 'Enter' ? 'e'
-      : (e.ctrlKey || e.metaKey) && (c === 'KeyV' || e.key === 'v') ? 'v'
-      : /^(Space|PageDown|PageUp|Arrow|Home|End)/.test(c) ? 'n' : undefined;
-    push(e, { k: 'kd', ks: hashCode(c), mod: e.ctrlKey || e.metaKey || e.altKey || undefined, sp, composing: e.isComposing || undefined });
+  on(w, 'keydown', (event: KeyboardEvent) => {
+    if (event.repeat) return;
+    const code = event.code || event.key || '';
+    const sp = code === 'Backspace' || code === 'Delete' ? 'b' : code === 'Tab' ? 't' : code === 'Enter' ? 'e'
+      : (event.ctrlKey || event.metaKey) && (code === 'KeyV' || event.key === 'v') ? 'v'
+      : /^(Space|PageDown|PageUp|Arrow|Home|End)/.test(code) ? 'n' : undefined;
+    push(event, { k: 'kd', ks: hashCode(code), mod: event.ctrlKey || event.metaKey || event.altKey || undefined, sp, composing: event.isComposing || undefined });
   });
-  on(w, 'keyup', (e: KeyboardEvent) => push(e, { k: 'ku', ks: hashCode(e.code || e.key || ''), composing: e.isComposing || undefined }));
+  on(w, 'keyup', (event: KeyboardEvent) => push(event, { k: 'ku', ks: hashCode(event.code || event.key || ''), composing: event.isComposing || undefined }));
 
   const lastBefore = new Map<number, number>(), lastFill = new Map<number, number>();
   const slot = (el: HTMLElement) => (opts.pciLite && isCardField(el) ? undefined : fieldSlot(el));
-  on(w, 'beforeinput', (e: InputEvent) => {
-    const el = e.target as HTMLElement;
+  on(w, 'beforeinput', (event: InputEvent) => {
+    const el = event.target as HTMLElement;
     const card = opts.pciLite && isEditable(el) && isCardField(el);
-    const t = e.inputType || '';
-    const it = e.isComposing ? 'c' : t === 'insertText' ? 't' : t === 'insertFromPaste' ? 'p' : t === 'insertReplacementText' || t === '' ? 'r'
+    const t = event.inputType || '';
+    const it = event.isComposing ? 'c' : t === 'insertText' ? 't' : t === 'insertFromPaste' ? 'p' : t === 'insertReplacementText' || t === '' ? 'r'
       : t.startsWith('delete') ? 'd' : t.includes('Composition') ? 'c' : 'o';
-    if (isEditable(el)) lastBefore.set(fieldSlot(el), at(e));
-    push(e, { k: 'in', it, n: card ? undefined : (e.data?.length ?? 0) });
+    if (isEditable(el)) lastBefore.set(fieldSlot(el), at(event));
+    push(event, { k: 'in', it, n: card ? undefined : (event.data?.length ?? 0) });
   });
-  on(w, 'input', (e: Event) => {
-    const el = e.target as HTMLElement;
+  on(w, 'input', (event: Event) => {
+    const el = event.target as HTMLElement;
     if (!isTextField(el)) return;
-    const fs = fieldSlot(el), t = at(e);
-    if (e.isTrusted) {
+    const fs = fieldSlot(el), t = at(event);
+    if (event.isTrusted) {
       // Typing already produced a beforeinput. Keep only script-set values and autofill, at most one
       // trusted event per field per second. Untrusted ones are the evidence and all stay.
       if (t - (lastBefore.get(fs) ?? -1e9) < 50 || t - (lastFill.get(fs) ?? -1e9) < 1000) return;
       lastFill.set(fs, t);
     }
-    push(e, { k: 'iv', fs: slot(el) }, t);
+    push(event, { k: 'iv', fs: slot(el) }, t);
   });
-  on(w, 'change', (e: Event) => {
-    const el = e.target as HTMLElement | null;
-    if (el && (el.tagName === 'SELECT' || isEditable(el))) push(e, { k: 'ch', fs: slot(el) });
+  on(w, 'change', (event: Event) => {
+    const el = event.target as HTMLElement | null;
+    if (el && (el.tagName === 'SELECT' || isEditable(el))) push(event, { k: 'ch', fs: slot(el) });
   });
-  on(w, 'paste', (e: Event) => push(e, { k: 'ps' }));
-  on(w, 'focusin', (e: FocusEvent) => { if (isEditable(e.target)) push(e, { k: 'fo' }); });
+  on(w, 'paste', (event: Event) => push(event, { k: 'ps' }));
+  on(w, 'focusin', (event: FocusEvent) => { if (isEditable(event.target)) push(event, { k: 'fo' }); });
 
-  on(w, 'wheel', (e: WheelEvent) => push(e, { k: 'wh', dy: Math.round(e.deltaY * 100) / 100, dm: e.deltaMode }));
+  on(w, 'wheel', (event: WheelEvent) => push(event, { k: 'wh', dy: Math.round(event.deltaY * 100) / 100, dm: event.deltaMode }));
   let lastScroll = -1e9;
   let settle: ReturnType<typeof setTimeout> | undefined;
   const scrollPos = () => ({ sy: Math.round(w.scrollY), h: w.innerHeight });
-  on(w, 'scroll', (e: Event) => {
-    const t = at(e);
-    const docScroll = e.target === doc || e.target === doc.documentElement || e.target === w;
-    if (t - lastScroll > 50) { lastScroll = t; push(e, { k: 'sc', ...(docScroll ? scrollPos() : {}) }, t); } // throttle
+  on(w, 'scroll', (event: Event) => {
+    const t = at(event);
+    const docScroll = event.target === doc || event.target === doc.documentElement || event.target === w;
+    if (t - lastScroll > 50) { lastScroll = t; push(event, { k: 'sc', ...(docScroll ? scrollPos() : {}) }, t); } // throttle
     if (!docScroll) return;
     // The throttle drops a burst's final position; record it once scrolling settles.
     clearTimeout(settle);
@@ -146,14 +146,14 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
     settle = setTimeout(() => ring.push({ k: 'se', t: now(), ...scrollPos() }), 150);
   });
 
-  on(w, 'touchstart', (e: TouchEvent) => {
-    const tt = e.touches[0];
-    push(e, { k: 'ts', x: tt?.clientX, y: tt?.clientY, f: tt?.force, r: tt?.radiusX });
+  on(w, 'touchstart', (event: TouchEvent) => {
+    const tt = event.touches[0];
+    push(event, { k: 'ts', x: tt?.clientX, y: tt?.clientY, f: tt?.force, r: tt?.radiusX });
   });
-  on(w, 'touchmove', (e: TouchEvent) => { const tt = e.touches[0]; push(e, { k: 'tm', x: tt?.clientX, y: tt?.clientY }); });
-  on(w, 'touchend', (e: TouchEvent) => { const tt = e.changedTouches[0]; push(e, { k: 'te', x: tt?.clientX, y: tt?.clientY }); });
+  on(w, 'touchmove', (event: TouchEvent) => { const tt = event.touches[0]; push(event, { k: 'tm', x: tt?.clientX, y: tt?.clientY }); });
+  on(w, 'touchend', (event: TouchEvent) => { const tt = event.changedTouches[0]; push(event, { k: 'te', x: tt?.clientX, y: tt?.clientY }); });
 
-  on(doc, 'visibilitychange', (e: Event) => push(e, { k: doc.visibilityState === 'hidden' ? 'vh' : 'vv' }));
+  on(doc, 'visibilitychange', (event: Event) => push(event, { k: doc.visibilityState === 'hidden' ? 'vh' : 'vv' }));
 
-  return { ring, stop: () => { clearTimeout(settle); off.forEach((f) => f()); } };
+  return { ring, stop: () => { clearTimeout(settle); off.forEach((unlisten) => unlisten()); } };
 }

@@ -37,7 +37,7 @@ export interface FuseInput {
   catalog?: RoleCatalog;
 }
 
-const logit = (p: number) => Math.log(p / (1 - p));
+const logit = (probability: number) => Math.log(probability / (1 - probability));
 const sigm = (x: number) => 1 / (1 + Math.exp(-x));
 const byCode = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
 /** Strongest evidence first; the code breaks ties, so a choice never depends on signal order. */
@@ -46,7 +46,7 @@ const strongestFirst = (left: Signal, right: Signal): number => right.llr - left
 export function fuse(inp: FuseInput): Verdict {
   const { sig } = inp;
   const shadow = new Set(inp.sig.shadow ?? []);
-  const signals = inp.signals.map(normalizeSoftSignal).map((s) => (shadow.has(s.code) ? { ...s, llr: 0, hard: false } : s));
+  const signals = inp.signals.map(normalizeSoftSignal).map((signal) => (shadow.has(signal.code) ? { ...signal, llr: 0, hard: false } : signal));
   const prior = inp.sitePrior ?? sig.priors[inp.profile] ?? sig.priors.generic;
   const boost = (sig.actionPriorBoost[inp.action] ?? 1) * (inp.attackMode ? 3 : 1);
   const pH = Math.max(0.01, 1 - prior.bot - prior.agent);
@@ -61,36 +61,36 @@ export function fuse(inp: FuseInput): Verdict {
 
   // Per-group sums per hypothesis.
   const sums: Record<'bot' | 'agent', Partial<Record<Group, number>>> = { bot: {}, agent: {} };
-  for (const s of signals) {
-    for (const c of ['bot', 'agent'] as const) {
-      if (s.target === c || s.target === 'both') sums[c][s.group] = (sums[c][s.group] ?? 0) + s.llr;
+  for (const signal of signals) {
+    for (const kind of ['bot', 'agent'] as const) {
+      if (signal.target === kind || signal.target === 'both') sums[kind][signal.group] = (sums[kind][signal.group] ?? 0) + signal.llr;
     }
   }
   const clamp = (x: number, cap: number) => Math.max(-cap, Math.min(cap, x));
-  const groupContribution = (c: 'bot' | 'agent', g: Group) => rel[g] * clamp(sums[c][g] ?? 0, sig.groupCaps[g]);
+  const groupContribution = (kind: 'bot' | 'agent', group: Group) => rel[group] * clamp(sums[kind][group] ?? 0, sig.groupCaps[group]);
 
-  const L = { bot: base.bot, agent: base.agent };
-  for (const c of ['bot', 'agent'] as const) {
-    for (const g of Object.keys(sums[c]) as Group[]) L[c] += groupContribution(c, g);
+  const logits = { bot: base.bot, agent: base.agent };
+  for (const kind of ['bot', 'agent'] as const) {
+    for (const group of Object.keys(sums[kind]) as Group[]) logits[kind] += groupContribution(kind, group);
   }
 
   // Environment vs driving disambiguation.
   const envScore = sigm((sums.bot.E ?? 0) + (sums.bot.A ?? 0) - 1);
   const drivingScore = sigm(rel.D * ((sums.agent.D ?? 0) + (sums.agent.R ?? 0) + (sums.agent.C ?? 0)) - 1);
-  if (drivingScore > 0.7 && envScore < 0.4) L.agent += 1.2; // real browser, non-human hands → agent
-  if (envScore > 0.8 && drivingScore < 0.5) L.bot += 0.8; // fake browser → scripted bot
+  if (drivingScore > 0.7 && envScore < 0.4) logits.agent += 1.2; // real browser, non-human hands → agent
+  if (envScore > 0.8 && drivingScore < 0.5) logits.bot += 0.8; // fake browser → scripted bot
 
-  let probability = softmax({ human: 0, bot: L.bot, agent: L.agent });
+  let probability = softmax({ human: 0, bot: logits.bot, agent: logits.agent });
 
   // Hard evidence short-circuit. A server-verified identity outranks everything; the strongest one wins.
   const verified = signals
-    .filter((s) => s.group === 'H' && s.code.startsWith('verified.') && !shadow.has(s.code))
+    .filter((signal) => signal.group === 'H' && signal.code.startsWith('verified.') && !shadow.has(signal.code))
     .sort(strongestFirst)[0];
-  const hard = verified ? [verified] : signals.filter((s) => s.hard);
+  const hard = verified ? [verified] : signals.filter((signal) => signal.hard);
   const catalog = inp.catalog ?? fingerprintRoles;
   const roles = resolveRoles(signals, { catalog });
   if (hard.length) {
-    const agentHard = hard.some((s) => s.target === 'agent');
+    const agentHard = hard.some((signal) => signal.target === 'agent');
     // An agent marker wins; a verified identity is a bot; an automation tool alone depends on its driving.
     const winner: VerdictClass = agentHard ? 'agent' : verified ? 'bot' : automationWinner(drivingScore, sums.agent);
     probability = winner === 'agent'
@@ -108,17 +108,17 @@ export function fuse(inp: FuseInput): Verdict {
     probability = { human: 0.51, bot: 0.49 * probability.bot / remaining, agent: 0.49 * probability.agent / remaining };
   }
 
-  const cls = (Object.keys(probability) as VerdictClass[]).reduce((a, b) => (probability[b] > probability[a] ? b : a));
+  const cls = (Object.keys(probability) as VerdictClass[]).reduce((best, candidate) => (probability[candidate] > probability[best] ? candidate : best));
   const nonHuman = 1 - probability.human;
 
   // Confidence: how far from the decision boundary and how much evidence exists.
-  const evidenceMass = signals.reduce((s, x) => s + Math.abs(x.llr) * rel[x.group], 0);
+  const evidenceMass = signals.reduce((sum, x) => sum + Math.abs(x.llr) * rel[x.group], 0);
   const confidence = hard.length ? 0.99 : r3(Math.min(insufficient ? 0.25 : 1, Math.min(1, evidenceMass / 8) * (0.5 + Math.abs(nonHuman - 0.5))));
 
   const reasons: Reason[] = signals
-    .filter((s) => (cls === 'human' ? s.llr < 0 : s.llr > 0 && (s.target === cls || s.target === 'both')))
-    .map((s) => ({ code: s.code, detail: s.detail, weight: r3(Math.abs(s.llr) * rel[s.group]) }))
-    .sort((a, b) => b.weight - a.weight || byCode(a.code, b.code))
+    .filter((signal) => (cls === 'human' ? signal.llr < 0 : signal.llr > 0 && (signal.target === cls || signal.target === 'both')))
+    .map((signal) => ({ code: signal.code, detail: signal.detail, weight: r3(Math.abs(signal.llr) * rel[signal.group]) }))
+    .sort((left, right) => right.weight - left.weight || byCode(left.code, right.code))
     .slice(0, 8);
 
   if (insufficient) reasons.unshift({ code: 'evidence.insufficient_automation', weight: 0, detail: 'Environment or ambiguous interaction signals lack corroboration; human-leaning, not verified human.' });
@@ -159,9 +159,9 @@ function agentOf(roles: Roles, catalog: RoleCatalog, signals: readonly Signal[],
   const agent = roles.agent?.evidence === 'spoofed' ? null : roles.agent;
   const family = verified?.family
     ?? (agent ? catalog.entry(agent.id)?.family : undefined)
-    ?? signals.filter((s) => s.family && s.llr > 0).sort(strongestFirst)[0]?.family
+    ?? signals.filter((signal) => signal.family && signal.llr > 0).sort(strongestFirst)[0]?.family
     ?? 'unknown';
-  const method = verified?.code ?? agent?.source ?? hard.filter((s) => s.family).sort(strongestFirst)[0]?.code ?? 'behavioral';
+  const method = verified?.code ?? agent?.source ?? hard.filter((signal) => signal.family).sort(strongestFirst)[0]?.code ?? 'behavioral';
   return {
     family,
     ...(agent ? { id: agent.id } : {}),
@@ -183,11 +183,11 @@ export function recommend(sig: Signatures, profile: Profile, action: Action, cls
   return 'tag';
 }
 
-function softmax(l: Record<VerdictClass, number>): Record<VerdictClass, number> {
-  const m = Math.max(l.human, l.bot, l.agent);
-  const e = { human: Math.exp(l.human - m), bot: Math.exp(l.bot - m), agent: Math.exp(l.agent - m) };
-  const z = e.human + e.bot + e.agent;
-  return { human: e.human / z, bot: e.bot / z, agent: e.agent / z };
+function softmax(logits: Record<VerdictClass, number>): Record<VerdictClass, number> {
+  const max = Math.max(logits.human, logits.bot, logits.agent);
+  const exps = { human: Math.exp(logits.human - max), bot: Math.exp(logits.bot - max), agent: Math.exp(logits.agent - max) };
+  const total = exps.human + exps.bot + exps.agent;
+  return { human: exps.human / total, bot: exps.bot / total, agent: exps.agent / total };
 }
 
 const r3 = (x: number) => Math.round(x * 1000) / 1000;
