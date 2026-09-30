@@ -41,11 +41,11 @@ const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
 };
 export function hasAutomationEvidence(signals: readonly Signal[], reliability: Record<Group, number>): boolean {
   const families = new Set<string>();
-  for (const s of signals) {
-    if (s.llr <= 0 || reliability[s.group] <= 0) continue;
-    if (s.hard || (s.group === 'A' && s.llr >= 3) || ((s.group === 'H' || s.group === 'J') && s.llr >= 3)) return true;
-    const family = BEHAVIOR_FAMILIES[s.code];
-    if (family && s.llr * reliability[s.group] >= 1) families.add(family);
+  for (const signal of signals) {
+    if (signal.llr <= 0 || reliability[signal.group] <= 0) continue;
+    if (signal.hard || (signal.group === 'A' && signal.llr >= 3) || ((signal.group === 'H' || signal.group === 'J') && signal.llr >= 3)) return true;
+    const family = BEHAVIOR_FAMILIES[signal.code];
+    if (family && signal.llr * reliability[signal.group] >= 1) families.add(family);
   }
   return families.size >= 2;
 }

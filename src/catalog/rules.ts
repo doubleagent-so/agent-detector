@@ -5,16 +5,16 @@ import { FINGERPRINTS } from './fingerprinted.ts';
 // Only fingerprint data: this module is what the browser SDK bundles.
 
 /** DOM marker rules for `Signatures.markers`, in catalog order. */
-export const markerRules = (): MarkerRule[] => FINGERPRINTS.flatMap((f) => (f.markers ?? []).map((m) => ({
-  selector: m.selector, family: f.family ?? 'unknown', agentId: f.id, target: m.target ?? f.class, code: m.code, ...(m.llr !== undefined ? { llr: m.llr } : {}),
+export const markerRules = (): MarkerRule[] => FINGERPRINTS.flatMap((fingerprint) => (fingerprint.markers ?? []).map((marker) => ({
+  selector: marker.selector, family: fingerprint.family ?? 'unknown', agentId: fingerprint.id, target: marker.target ?? fingerprint.class, code: marker.code, ...(marker.llr !== undefined ? { llr: marker.llr } : {}),
 })));
 
 /** Window-global rules for `Signatures.globals`, in catalog order. */
-export const globalRules = (): GlobalRule[] => FINGERPRINTS.flatMap((f) => (f.globals ?? []).map((g) => ({
-  pattern: g.pattern, target: g.target ?? f.class, code: g.code, agentId: f.id, ...(f.family ? { family: f.family } : {}),
+export const globalRules = (): GlobalRule[] => FINGERPRINTS.flatMap((fingerprint) => (fingerprint.globals ?? []).map((rule) => ({
+  pattern: rule.pattern, target: rule.target ?? fingerprint.class, code: rule.code, agentId: fingerprint.id, ...(fingerprint.family ? { family: fingerprint.family } : {}),
 })));
 
-const fingerprints = new Map(FINGERPRINTS.map((f) => [f.id, f]));
+const fingerprints = new Map(FINGERPRINTS.map((fingerprint) => [fingerprint.id, fingerprint]));
 
 /**
  * Attribution catalog for the browser: fingerprinted entries only, from data the bundle already
@@ -23,8 +23,8 @@ const fingerprints = new Map(FINGERPRINTS.map((f) => [f.id, f]));
  */
 export const fingerprintRoles: RoleCatalog = {
   entry: (id) => {
-    const f = fingerprints.get(id);
-    return f && { id: f.id, operator: f.id.slice(0, f.id.indexOf('.')), family: f.family ?? 'unknown', controller: f.class === 'bot' };
+    const fingerprint = fingerprints.get(id);
+    return fingerprint && { id: fingerprint.id, operator: fingerprint.id.slice(0, fingerprint.id.indexOf('.')), family: fingerprint.family ?? 'unknown', controller: fingerprint.class === 'bot' };
   },
   ipListOperator: () => undefined,
   hostOperator: () => undefined,

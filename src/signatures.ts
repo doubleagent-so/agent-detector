@@ -25,7 +25,7 @@ const base: Record<string, ActionPolicy> = {
   api_key: { challengeAt: 0.6, denyAt: 0.9 },
 };
 
-const withOverrides = (o: Record<string, ActionPolicy>) => ({ ...base, ...o });
+const withOverrides = (overrides: Record<string, ActionPolicy>) => ({ ...base, ...overrides });
 
 const policies: Record<Profile, Record<string, ActionPolicy>> = {
   generic: base,

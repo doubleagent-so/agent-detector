@@ -72,27 +72,27 @@ export function assessConduct(input: ConductInput): { behavior: BehaviorAssessme
   const reasons: BehaviorReason[] = [];
   let risk = 0;
   const add = (code: string, source: BehaviorReason['source'], severity: BehaviorReason['severity'], value: number) => {
-    if (!reasons.some((r) => r.code === code)) reasons.push({ code, source, severity });
+    if (!reasons.some((reason) => reason.code === code)) reasons.push({ code, source, severity });
     risk = Math.max(risk, value);
   };
   // Attribution for policy is exclusively server-verified evidence, never a DOM marker or UA declaration.
   const agent = resolveRoles(input.signals, { catalog: input.catalog ?? catalogRoles }).agent;
   const identity = agent?.id && POLICY_EVIDENCE.has(agent.evidence) ? agent.id : undefined;
   const matches = policy.rules.filter(
-    (r) =>
-      (r.actions.includes(input.action) || r.actions.includes('*')) &&
-      (r.agentIds.includes('*') || (!!identity && r.agentIds.includes(identity))),
+    (rule) =>
+      (rule.actions.includes(input.action) || rule.actions.includes('*')) &&
+      (rule.agentIds.includes('*') || (!!identity && rule.agentIds.includes(identity))),
   );
-  const denied = matches.find((r) => r.effect === 'deny');
+  const denied = matches.find((rule) => rule.effect === 'deny');
   // Wildcard allow still requires a verified identity: unknown clients cannot self-enrol as friendly.
-  const allowed = identity ? matches.find((r) => r.effect === 'allow') : undefined;
+  const allowed = identity ? matches.find((rule) => rule.effect === 'allow') : undefined;
   const authorization: AuthorizationAssessment = denied
     ? { decision: 'denied', ruleId: denied.id }
     : allowed
       ? { decision: 'allowed', ruleId: allowed.id }
       : { decision: 'unknown' };
   if (denied) add('policy.action_denied', 'policy', 'violation', 90);
-  for (const signal of input.signals.filter((s) => s.group === 'H')) {
+  for (const signal of input.signals.filter((candidate) => candidate.group === 'H')) {
     // A cryptographic mismatch is stronger than expiry, network failure or missing key material.
     if (signal.code === 'net.web_bot_auth_invalid') add('identity.invalid_signature', 'network', 'suspicious', 60);
     if (signal.code.startsWith('net.unverified_claim:')) add('identity.unverified_claim', 'network', 'suspicious', 45);
@@ -115,7 +115,7 @@ export function assessConduct(input: ConductInput): { behavior: BehaviorAssessme
     if (activity.deniedActions > 0 && activity.deniedActions < policy.limits.deniedActions)
       add('activity.action_denied', 'application', 'suspicious', 25);
   }
-  const rogue = reasons.some((r) => r.severity === 'violation');
+  const rogue = reasons.some((reason) => reason.severity === 'violation');
   const friendly = !rogue && allowed && reasons.length === 0 && (!input.integrity || input.integrity.trust >= 0.7);
   if (friendly) add('policy.authorized_identity', 'policy', 'info', 0);
   return {
@@ -161,41 +161,41 @@ export function applyConduct(verdict: Verdict, input: ConductInput): Verdict {
 /** Strict, bounded policy validation shared by management APIs and configuration reads. */
 export function parseAgentPolicy(value: unknown): AgentPolicy {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('agent_policy must be an object');
-  const p = value as Record<string, unknown>;
+  const policy = value as Record<string, unknown>;
   if (
-    Object.keys(p).some((k) => !['version', 'mode', 'rules', 'limits'].includes(k)) ||
-    p.version !== 1 ||
-    !['monitor', 'enforce'].includes(String(p.mode)) ||
-    !Array.isArray(p.rules) ||
-    p.rules.length > 50
+    Object.keys(policy).some((k) => !['version', 'mode', 'rules', 'limits'].includes(k)) ||
+    policy.version !== 1 ||
+    !['monitor', 'enforce'].includes(String(policy.mode)) ||
+    !Array.isArray(policy.rules) ||
+    policy.rules.length > 50
   )
     throw new Error('invalid agent_policy version, mode or rules');
   const ids = new Set<string>();
-  const rules = p.rules.map((raw) => {
+  const rules = policy.rules.map((raw) => {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('invalid policy rule');
-    const r = raw as Record<string, unknown>;
+    const rule = raw as Record<string, unknown>;
     if (
-      Object.keys(r).some((k) => !['id', 'effect', 'agentIds', 'actions'].includes(k)) ||
-      typeof r.id !== 'string' ||
-      !/^[\w-]{1,64}$/.test(r.id) ||
-      ids.has(r.id) ||
-      !['allow', 'deny'].includes(String(r.effect))
+      Object.keys(rule).some((k) => !['id', 'effect', 'agentIds', 'actions'].includes(k)) ||
+      typeof rule.id !== 'string' ||
+      !/^[\w-]{1,64}$/.test(rule.id) ||
+      ids.has(rule.id) ||
+      !['allow', 'deny'].includes(String(rule.effect))
     )
       throw new Error('invalid or duplicate policy rule');
-    ids.add(r.id);
-    const list = (v: unknown, re: RegExp) => {
-      if (!Array.isArray(v) || v.length < 1 || v.length > 50 || v.some((x) => typeof x !== 'string' || !re.test(x)))
+    ids.add(rule.id);
+    const list = (field: unknown, re: RegExp) => {
+      if (!Array.isArray(field) || field.length < 1 || field.length > 50 || field.some((x) => typeof x !== 'string' || !re.test(x)))
         throw new Error('invalid policy match list');
-      return [...new Set(v)] as string[];
+      return [...new Set(field)] as string[];
     };
     return {
-      id: r.id,
-      effect: r.effect as 'allow' | 'deny',
-      agentIds: list(r.agentIds, /^(?:\*|[a-z0-9][a-z0-9._-]{0,99})$/),
-      actions: list(r.actions, /^(?:\*|[A-Za-z0-9/_]{1,64})$/),
+      id: rule.id,
+      effect: rule.effect as 'allow' | 'deny',
+      agentIds: list(rule.agentIds, /^(?:\*|[a-z0-9][a-z0-9._-]{0,99})$/),
+      actions: list(rule.actions, /^(?:\*|[A-Za-z0-9/_]{1,64})$/),
     };
   });
-  const limits = p.limits as Record<string, unknown>;
+  const limits = policy.limits as Record<string, unknown>;
   if (
     !limits ||
     typeof limits !== 'object' ||
@@ -208,7 +208,7 @@ export function parseAgentPolicy(value: unknown): AgentPolicy {
       throw new Error(`invalid limit ${key}`);
   return {
     version: 1,
-    mode: p.mode as AgentPolicy['mode'],
+    mode: policy.mode as AgentPolicy['mode'],
     rules,
     limits: { requests: Number(limits.requests), failedAuth: Number(limits.failedAuth), deniedActions: Number(limits.deniedActions) },
   };

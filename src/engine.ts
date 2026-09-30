@@ -61,9 +61,9 @@ export interface Engine {
 }
 
 const rid = () => {
-  const b = new Uint8Array(12);
-  crypto.getRandomValues(b);
-  return Array.from(b, (x) => x.toString(36).padStart(2, '0')).join('').slice(0, 20);
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (x) => x.toString(36).padStart(2, '0')).join('').slice(0, 20);
 };
 
 export function createEngine(w: Window & typeof globalThis, opts: EngineOptions = {}): Engine {
@@ -77,7 +77,7 @@ export function createEngine(w: Window & typeof globalThis, opts: EngineOptions 
   const staticSignals: Signal[] = [...hardProbes(w, sig), ...envProbes(w, ctx)];
   const dynamic = new Map<string, Signal>();
   const external = new Map<string, Signal>();
-  const addDyn = (list: Signal[]) => list.forEach((s) => dynamic.set(s.code, s));
+  const addDyn = (list: Signal[]) => list.forEach((signal) => dynamic.set(signal.code, signal));
 
   const { ring, stop: stopCollector } = startCollector(w, { pciLite });
 
@@ -93,8 +93,8 @@ export function createEngine(w: Window & typeof globalThis, opts: EngineOptions 
       behaviorReliability: lastBehavior.stats.reliability,
       driveReliability: lastBehavior.stats.driveReliability,
       sitePrior: opts.sitePrior, attackMode: opts.attackMode,
-      stage: external.size && [...external.values()].some((s) => s.group === 'J') ? 'final' : 'provisional',
-      judge: [...external.values()].find((s) => s.group === 'J')?.detail,
+      stage: external.size && [...external.values()].some((signal) => signal.group === 'J') ? 'final' : 'provisional',
+      judge: [...external.values()].find((signal) => signal.group === 'J')?.detail,
     });
   };
   let lastKey = '';
@@ -138,19 +138,19 @@ export function createEngine(w: Window & typeof globalThis, opts: EngineOptions 
     ready,
     verdict: () => current,
     score: (action?: Action) => (action ? compute(action) : emit()),
-    addSignals: (s: Signal[]) => { s.forEach((x) => external.set(x.code, x)); return emit(); },
+    addSignals: (signals: Signal[]) => { signals.forEach((x) => external.set(x.code, x)); return emit(); },
     payload: (ids?: Record<string, string>): BeaconPayload => {
-      const v = emit();
+      const verdict = emit();
       const scr = w.screen;
       return {
         v: 1, sid: sessionId, sigv: sig.version,
         page: { profile: page.profile, action: page.action, payment: page.payment, host: w.location.host, path: w.location.pathname.slice(0, 120), ref: w.document.referrer ? new URL(w.document.referrer).host : undefined },
-        verdict: { class: v.class, probability: v.probability, confidence: v.confidence, scores: v.scores, agent: v.agent, recommendation: v.recommendation },
-        signals: [...staticSignals, ...dynamic.values(), ...lastBehavior.signals].map((s) => ({ c: s.code, g: s.group, l: Math.round(s.llr * 100) / 100, d: s.detail?.slice(0, 80), t: s.target, f: s.family, h: s.hard ? (1 as const) : undefined })),
+        verdict: { class: verdict.class, probability: verdict.probability, confidence: verdict.confidence, scores: verdict.scores, agent: verdict.agent, recommendation: verdict.recommendation },
+        signals: [...staticSignals, ...dynamic.values(), ...lastBehavior.signals].map((signal) => ({ c: signal.code, g: signal.group, l: Math.round(signal.llr * 100) / 100, d: signal.detail?.slice(0, 80), t: signal.target, f: signal.family, h: signal.hard ? (1 as const) : undefined })),
         ua: w.navigator.userAgent.slice(0, 300),
         features: lastBehavior.vector,
         stats: { events: lastBehavior.stats.events, durationMs: Math.round(lastBehavior.stats.durationMs), pointer: lastBehavior.stats.pointer, reliability: Math.round(lastBehavior.stats.reliability * 100) / 100, driveReliability: Math.round(lastBehavior.stats.driveReliability * 100) / 100 },
-        timeline: pciLite ? [] : timeline(ring.events.filter(e => !e.u && e.t >= ring.completeSince), 40),
+        timeline: pciLite ? [] : timeline(ring.events.filter(event => !event.u && event.t >= ring.completeSince), 40),
         env: { tz: safeTz(), lang: w.navigator.language, screen: `${scr.width}x${scr.height}`, dpr: w.devicePixelRatio, hc: w.navigator.hardwareConcurrency, mobile: ctx.mobile },
         device,
         ids,

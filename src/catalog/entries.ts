@@ -36,15 +36,15 @@ const GOOGLE_FETCHER_IPS = [
 
 type Entry = CatalogEntry;
 /** Declared-only entry from the ai.robots.txt / crawler-user-agents lists. */
-const declared = (id: string, name: string, operator: string, ua: string[], o: Partial<Entry> = {}): Entry => ({
+const declared = (id: string, name: string, operator: string, ua: string[], overrides: Partial<Entry> = {}): Entry => ({
   id, name, operator, class: 'bot', behaviour: 'training', surface: 'crawler', operatorType: 'direct',
-  verifiable: 'declared', identify: { ua }, respectsRobots: 'unknown', source: AIROBOTS, ...o,
+  verifiable: 'declared', identify: { ua }, respectsRobots: 'unknown', source: AIROBOTS, ...overrides,
 });
 
 // ── Entries with DOM / JS fingerprints (the fingerprints live in fingerprinted.ts) ──────────
-const withFp = (e: Entry): Entry => {
-  const f = FINGERPRINTS.find((x) => x.id === e.id);
-  return { ...e, identify: { ...e.identify, ...(f?.markers ? { markers: f.markers } : {}), ...(f?.globals ? { globals: f.globals } : {}) } };
+const withFp = (entry: Entry): Entry => {
+  const fingerprint = FINGERPRINTS.find((x) => x.id === entry.id);
+  return { ...entry, identify: { ...entry.identify, ...(fingerprint?.markers ? { markers: fingerprint.markers } : {}), ...(fingerprint?.globals ? { globals: fingerprint.globals } : {}) } };
 };
 const automation = (id: string, name: string, operator: string, source: string, ua?: string[]): Entry => withFp({
   id, name, operator, class: 'bot', behaviour: 'data_collection', surface: 'automation_tool', operatorType: 'intermediary',
@@ -319,9 +319,9 @@ const social: Entry[] = [
 ];
 
 // ── Scraper APIs, automation tools and HTTP libraries ────────────────────────────────────────
-const tool = (id: string, name: string, operator: string, surface: Entry['surface'], identify: Entry['identify'], source: string, o: Partial<Entry> = {}): Entry => ({
+const tool = (id: string, name: string, operator: string, surface: Entry['surface'], identify: Entry['identify'], source: string, overrides: Partial<Entry> = {}): Entry => ({
   id, name, operator, class: 'bot', behaviour: 'data_collection', surface, operatorType: 'intermediary',
-  verifiable: identify.ua?.length ? 'declared' : 'stealth', identify, respectsRobots: 'unknown', source, ...o,
+  verifiable: identify.ua?.length ? 'declared' : 'stealth', identify, respectsRobots: 'unknown', source, ...overrides,
 });
 const scrapers: Entry[] = [
   tool('brightdata.unlocker', 'Bright Data', 'brightdata', 'scraper_api', {}, 'https://brightdata.com'),

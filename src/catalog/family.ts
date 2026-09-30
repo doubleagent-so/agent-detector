@@ -19,13 +19,13 @@ const OPERATOR_DOMAINS: [string, string[]][] = [
 /** Operator slug owning a host, if known. */
 export function operatorForHost(host: string): string | undefined {
   const h = host.toLowerCase();
-  return OPERATOR_DOMAINS.find(([, ds]) => ds.some((d) => h === d || h.endsWith(`.${d}`)))?.[0];
+  return OPERATOR_DOMAINS.find(([, ds]) => ds.some((domain) => h === domain || h.endsWith(`.${domain}`)))?.[0];
 }
 
 /** Legacy family for an operator slug. */
 export const familyOfOperator = (operator: string | undefined): AgentFamily => (operator ? FAMILY_BY_OPERATOR[operator] ?? 'unknown' : 'unknown');
 
 /** Legacy coarse family of an entry (kept for one release alongside `agentId`). */
-export const familyOf = (e: CatalogEntry | undefined): AgentFamily =>
-  e ? e.family ?? FAMILY_BY_OPERATOR[e.operator] ?? 'unknown' : 'unknown';
+export const familyOf = (entry: CatalogEntry | undefined): AgentFamily =>
+  entry ? entry.family ?? FAMILY_BY_OPERATOR[entry.operator] ?? 'unknown' : 'unknown';
 

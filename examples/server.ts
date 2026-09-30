@@ -6,8 +6,8 @@ export async function rescore(request: Request): Promise<Verdict> {
   const payload = (await request.json()) as BeaconPayload;
   // Client evidence is a claim: drop the groups only a server may add.
   const client = payload.signals
-    .filter((s) => s.g !== 'H' && s.g !== 'J' && !s.c.startsWith('verified.'))
-    .map((s): Signal => ({ code: s.c, group: s.g as Signal['group'], target: s.t as Signal['target'], llr: s.l, hard: s.h === 1 }));
+    .filter((signal) => signal.g !== 'H' && signal.g !== 'J' && !signal.c.startsWith('verified.'))
+    .map((signal): Signal => ({ code: signal.c, group: signal.g as Signal['group'], target: signal.t as Signal['target'], llr: signal.l, hard: signal.h === 1 }));
 
   const server: Signal[] = [];
   const declared = matchUserAgent(request.headers.get('user-agent'));

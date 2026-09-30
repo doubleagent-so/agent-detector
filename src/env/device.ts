@@ -20,26 +20,26 @@ export interface DeviceFacts {
   ch?: Record<string, string>;
 }
 
-const s = (v: unknown, n = 120): string | undefined => (typeof v === 'string' && v ? v.slice(0, n) : undefined);
-const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+const text = (value: unknown, n = 120): string | undefined => (typeof value === 'string' && value ? value.slice(0, n) : undefined);
+const num = (value: unknown): number | undefined => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
 
 export function deviceFacts(w: W): DeviceFacts {
   try {
     const nav = w.navigator as Navigator & { deviceMemory?: number; connection?: { effectiveType?: string; saveData?: boolean } };
     const gl = webglInfo(w);
     const out: DeviceFacts = {
-      langs: [...(nav.languages ?? [])].slice(0, 5).map((l) => l.slice(0, 35)),
+      langs: [...(nav.languages ?? [])].slice(0, 5).map((lang) => lang.slice(0, 35)),
       cd: num(w.screen?.colorDepth),
       mem: num(nav.deviceMemory),
       touch: num(nav.maxTouchPoints),
-      net: s(nav.connection?.effectiveType, 16),
+      net: text(nav.connection?.effectiveType, 16),
       save: nav.connection?.saveData,
       avail: w.screen ? `${w.screen.availWidth}x${w.screen.availHeight}` : undefined,
-      plat: s(nav.platform, 32),
-      glv: s(gl?.vendor),
-      gl: s(gl?.renderer),
+      plat: text(nav.platform, 32),
+      glv: text(gl?.vendor),
+      gl: text(gl?.renderer),
     };
-    return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as DeviceFacts;
+    return Object.fromEntries(Object.entries(out).filter(([, value]) => value !== undefined)) as DeviceFacts;
   } catch { return {}; }
 }
 
@@ -49,10 +49,10 @@ export async function clientHints(w: W): Promise<Record<string, string> | undefi
   if (!uad?.getHighEntropyValues) return undefined;
   try {
     const h = await uad.getHighEntropyValues(['platform', 'platformVersion', 'model', 'architecture', 'bitness', 'fullVersionList']);
-    const brands = (h.fullVersionList as { brand: string; version: string }[] | undefined)?.map((b) => `${b.brand} ${b.version}`).join(', ');
+    const brands = (h.fullVersionList as { brand: string; version: string }[] | undefined)?.map((brand) => `${brand.brand} ${brand.version}`).join(', ');
     const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries({ platform: h.platform, platformVersion: h.platformVersion, model: h.model, architecture: h.architecture, bitness: h.bitness, brands })) {
-      const t = s(v, 200);
+    for (const [k, value] of Object.entries({ platform: h.platform, platformVersion: h.platformVersion, model: h.model, architecture: h.architecture, bitness: h.bitness, brands })) {
+      const t = text(value, 200);
       if (t) out[k] = t;
     }
     return out;
