@@ -42,7 +42,7 @@ export interface BeaconPayload {
   /** Aggregate weight. Always 1: every session is tracked, humans included (no sampling). */
   w: number;
   /** What the browser says about the device (env/device.ts); kept in the 30-day raw tier. */
-  device?: import('./env/device.ts').DeviceFacts;
+  device?: DeviceFacts;
   /** The visitor's pages this page load (built by the browser SDK's journey tracker). */
   pages?: { i: string; p: string; q?: Record<string, string>; r?: string; a: number; d: number; v: number; s: number }[];
 }

@@ -2,7 +2,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEngine } from '../src/engine.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
-import type { Verdict } from '../src/types.ts';
 
 type W = Window & typeof globalThis;
 const win = window as unknown as W & Record<string, unknown>;
@@ -131,7 +130,6 @@ describe('createEngine', () => {
     expect(p.env).toEqual(expect.objectContaining({ lang: navigator.language, mobile: false }));
     expect(p.ua).toBe(navigator.userAgent.slice(0, 300));
     expect(Array.isArray(p.timeline)).toBe(true);
-    const v: Verdict = e.verdict();
     // Every session is tracked: the weight is always 1, confident humans included (no sampling).
     expect(p.w).toBe(1);
     // External (H/J) evidence is never echoed back to the server.

@@ -29,7 +29,7 @@ export function timeline(ev: readonly TraceEvent[], maxLines = 60): string[] {
     flushKeys();
     const gap = e.t - lastAction;
     const pre = gap > 2000 ? `(idle ${s(gap)}, ${movesSince} moves) ` : '';
-    let line = '';
+    let line: string;
     switch (e.k) {
       case 'dn': line = `pointer-down ${e.pt === 't' ? 'touch' : 'mouse'} offset(${f(e.ox)},${f(e.oy)}) approach=${movesSince} moves${e.sxm ? ' screen==client' : ''}${e.u ? ' untrusted' : ''}`; break;
       case 'ck': line = `click detail=${e.d}${e.u ? ' untrusted' : ''}`; break;

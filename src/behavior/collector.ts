@@ -47,9 +47,11 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   const push = (source: Event, e: Omit<TraceEvent, 't' | 'u'>, t = at(source)) =>
     ring.push({ ...e, t, u: !source.isTrusted || undefined });
   const off: (() => void)[] = [];
-  const on = <K extends keyof WindowEventMap>(target: Window | Document, type: K | string, fn: (e: any) => void) => {
-    target.addEventListener(type, fn, { capture: true, passive: true });
-    off.push(() => target.removeEventListener(type, fn, { capture: true } as EventListenerOptions));
+  const on = <E extends Event>(target: Window | Document, type: string, fn: (e: E) => void) => {
+    // Each caller names the event type its listener reads; the DOM hands it that event.
+    const listener = fn as EventListener;
+    target.addEventListener(type, listener, { capture: true, passive: true });
+    off.push(() => target.removeEventListener(type, listener, { capture: true } as EventListenerOptions));
   };
 
   // Chrome frame height used to detect the CDP screenX/Y == clientX/Y artefact.

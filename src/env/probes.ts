@@ -53,7 +53,7 @@ export function hardProbes(w: W, sig: Signatures): Signal[] {
   const ua = nav.userAgent || '';
   if (/HeadlessChrome/.test(ua)) out.push({ code: 'auto.headless_ua', group: 'A', target: 'bot', llr: 9, hard: true, detail: 'HeadlessChrome UA' });
   safe(() => {
-    const brands = (nav as any).userAgentData?.brands as { brand: string }[] | undefined;
+    const brands = (nav as Navigator & { userAgentData?: { brands?: { brand: string }[] } }).userAgentData?.brands;
     if (brands?.some((b) => /Headless/i.test(b.brand))) {
       out.push({ code: 'auto.headless_brand', group: 'A', target: 'bot', llr: 9, hard: true });
     }
@@ -132,10 +132,10 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
 
   // An empty plugin list is normal when inline PDF viewing is disabled (HTML spec).
   safe(() => {
-    if (ctx.engine === 'blink' && !ctx.mobile && (nav as any).pdfViewerEnabled === true && nav.plugins.length === 0) {
+    if (ctx.engine === 'blink' && !ctx.mobile && nav.pdfViewerEnabled === true && nav.plugins.length === 0) {
       out.push({ code: 'env.no_plugins', group: 'E', target: 'both', llr: 2 });
     }
-    if (ctx.engine === 'blink' && !ctx.mobile && (nav as any).pdfViewerEnabled === false && nav.plugins.length > 0) {
+    if (ctx.engine === 'blink' && !ctx.mobile && nav.pdfViewerEnabled === false && nav.plugins.length > 0) {
       out.push({ code: 'env.plugins_inconsistent', group: 'E', target: 'bot', llr: 1.5 });
     }
   }, undefined);
@@ -158,6 +158,7 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
 
   // eval.toString length must match the engine (BotD).
   safe(() => {
+    // eslint-disable-next-line no-eval -- reads eval's source length as an engine fingerprint; never calls it
     const n = eval.toString().length;
     const expected = ctx.engine === 'blink' ? 33 : ctx.engine === 'gecko' ? 37 : ctx.engine === 'webkit' ? 37 : n;
     if (ctx.engine !== 'unknown' && n !== expected && !(ctx.engine === 'webkit' && n === 39)) {
@@ -168,7 +169,9 @@ export function envProbes(w: W, ctx: EnvContext): Signal[] {
   if (safe(() => nav.connection?.rtt === 0 && ctx.engine === 'blink' && !ctx.mobile, false)) {
     out.push({ code: 'env.rtt_zero', group: 'E', target: 'bot', llr: 0.7 });
   }
-  if (safe(() => typeof (w as any).process === 'object' && (w as any).process?.versions?.node, false)) {
+  // Read inside safe(): a page can define a throwing `process` getter.
+  const globals = w as W & { process?: { versions?: { node?: string } } };
+  if (safe(() => typeof globals.process === 'object' && globals.process?.versions?.node, false)) {
     out.push({ code: 'auto.node_process', group: 'E', target: 'bot', llr: 1 });
   }
   return out.map(normalizeSoftSignal);
@@ -200,7 +203,7 @@ function readWebgl(w: W): { vendor: string; renderer: string } | null {
 /** Async probes: client hints vs UA, permissions, worker-vs-main consistency. */
 export async function asyncEnvProbes(w: W, ctx: EnvContext): Promise<Signal[]> {
   const out: Signal[] = [];
-  const nav = w.navigator as any;
+  const nav = w.navigator as Navigator & { userAgentData?: { getHighEntropyValues?: (hints: string[]) => Promise<{ platform?: string; fullVersionList?: { brand: string; version: string }[] }> } };
   const ua: string = nav.userAgent || '';
 
   // Client hints must agree with the UA string.

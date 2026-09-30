@@ -125,9 +125,9 @@ describe('collector', () => {
     col = startCollector(window, { now: () => clock, pciLite: true });
     const plain = document.getElementById('plain')!;
     const types: [string | undefined, string][] = [['insertText', 't'], ['insertFromPaste', 'p'], ['insertReplacementText', 'r'], ['', 'r'], [undefined, 'r'], ['deleteContentBackward', 'd'], ['insertCompositionText', 'c'], ['formatBold', 'o']];
-    for (const [inputType, it] of types) {
+    for (const [inputType, kind] of types) {
       ev('beforeinput', { inputType, data: 'ab' }, {}, plain);
-      expect(last()).toEqual(expect.objectContaining({ k: 'in', it, n: 2 }));
+      expect(last()).toEqual(expect.objectContaining({ k: 'in', it: kind, n: 2 }));
     }
     ev('beforeinput', { inputType: 'insertText', data: null }, {}, plain);
     expect(last().n).toBe(0);

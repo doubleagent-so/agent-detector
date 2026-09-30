@@ -17,7 +17,8 @@ export function detectPage(w: Window, explicit?: Profile): PageContext {
   const hints: string[] = [];
   const has = (sel: string) => { try { return !!d.querySelector(sel); } catch { return false; } };
   const scripts = Array.from(d.scripts).map((s) => s.src).join(' ');
-  const g = w as any;
+  // Globals set by the page's own scripts (Shopify, Google Publisher Tag, Prebid).
+  const g = w as Window & { Shopify?: unknown; googletag?: unknown; pbjs?: unknown };
 
   const payment = /js\.stripe\.com|braintreegateway|checkoutshopper|adyen|paypal\.com\/sdk/.test(scripts)
     || has('iframe[name^="__privateStripeFrame"], [autocomplete^="cc-"], input[name*="cardnumber" i]');
