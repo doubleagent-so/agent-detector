@@ -126,6 +126,7 @@ function declarationCandidate(declaration: RoleDeclaration): Candidate | undefin
  * Resolves the four roles from a session's signals. Pure and independent of signal order: candidates
  * are sorted by (evidence, llr, id, source) before any choice. Only positive evidence counts.
  */
+// eslint-disable-next-line complexity -- kept whole for the browser bundle budget (17 KB gzip, scripts/size.mjs)
 export function resolveRoles(signals: readonly Signal[], input: RoleInput): Roles {
   const agents: Candidate[] = [];
   const controllers: Candidate[] = [];

@@ -228,6 +228,7 @@ function readWebgl(w: W): { vendor: string; renderer: string } | null {
 }
 
 /** Async probes: client hints vs UA, permissions, worker-vs-main consistency. */
+// eslint-disable-next-line complexity -- kept whole for the browser bundle budget (17 KB gzip, scripts/size.mjs)
 export async function asyncEnvProbes(w: W, ctx: EnvContext): Promise<Signal[]> {
   const out: Signal[] = [];
   const nav = w.navigator as Navigator & { userAgentData?: { getHighEntropyValues?: (hints: string[]) => Promise<{ platform?: string; fullVersionList?: { brand: string; version: string }[] }> } };

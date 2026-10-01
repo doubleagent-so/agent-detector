@@ -43,6 +43,7 @@ const byCode = (left: string, right: string): number => Number(left > right) - N
 /** Strongest evidence first; the code breaks ties, so a choice never depends on signal order. */
 const strongestFirst = (left: Signal, right: Signal): number => right.llr - left.llr || byCode(left.code, right.code);
 
+// eslint-disable-next-line complexity -- kept whole for the browser bundle budget (17 KB gzip, scripts/size.mjs)
 export function fuse(inp: FuseInput): Verdict {
   const { sig } = inp;
   const shadow = new Set(inp.sig.shadow ?? []);
@@ -67,7 +68,8 @@ export function fuse(inp: FuseInput): Verdict {
     }
   }
   const clamp = (x: number, cap: number) => Math.max(-cap, Math.min(cap, x));
-  const groupContribution = (kind: 'bot' | 'agent', group: Group) => rel[group] * clamp(sums[kind][group] ?? 0, sig.groupCaps[group]);
+  const sum = (kind: 'bot' | 'agent', group: Group) => sums[kind][group] ?? 0;
+  const groupContribution = (kind: 'bot' | 'agent', group: Group) => rel[group] * clamp(sum(kind, group), sig.groupCaps[group]);
 
   const logits = { bot: base.bot, agent: base.agent };
   for (const kind of ['bot', 'agent'] as const) {
@@ -75,8 +77,8 @@ export function fuse(inp: FuseInput): Verdict {
   }
 
   // Environment vs driving disambiguation.
-  const envScore = sigm((sums.bot.E ?? 0) + (sums.bot.A ?? 0) - 1);
-  const drivingScore = sigm(rel.D * ((sums.agent.D ?? 0) + (sums.agent.R ?? 0) + (sums.agent.C ?? 0)) - 1);
+  const envScore = sigm(sum('bot', 'E') + sum('bot', 'A') - 1);
+  const drivingScore = sigm(rel.D * (sum('agent', 'D') + sum('agent', 'R') + sum('agent', 'C')) - 1);
   if (drivingScore > 0.7 && envScore < 0.4) logits.agent += 1.2; // real browser, non-human hands → agent
   if (envScore > 0.8 && drivingScore < 0.5) logits.bot += 0.8; // fake browser → scripted bot
 
@@ -112,7 +114,7 @@ export function fuse(inp: FuseInput): Verdict {
   const nonHuman = 1 - probability.human;
 
   // Confidence: how far from the decision boundary and how much evidence exists.
-  const evidenceMass = signals.reduce((sum, x) => sum + Math.abs(x.llr) * rel[x.group], 0);
+  const evidenceMass = signals.reduce((mass, x) => mass + Math.abs(x.llr) * rel[x.group], 0);
   const confidence = hard.length ? 0.99 : r3(Math.min(insufficient ? 0.25 : 1, Math.min(1, evidenceMass / 8) * (0.5 + Math.abs(nonHuman - 0.5))));
 
   const reasons: Reason[] = signals
@@ -160,6 +162,7 @@ function automationWinner(drivingScore: number, agentSums: Partial<Record<Group,
 }
 
 /** The verdict's agent: the resolved roles, plus the legacy family and method. */
+// eslint-disable-next-line complexity -- kept whole for the browser bundle budget (17 KB gzip, scripts/size.mjs)
 function agentOf(roles: Roles, catalog: RoleCatalog, signals: readonly Signal[], hard: readonly Signal[], verified: Signal | undefined): NonNullable<Verdict['agent']> {
   const agent = roles.agent?.evidence === 'spoofed' ? null : roles.agent;
   const family = verified?.family
