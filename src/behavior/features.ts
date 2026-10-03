@@ -1,6 +1,7 @@
 import type { Signal } from '../types.ts';
 import type { TraceEvent } from './trace.ts';
 import { fieldFeatures } from './fields.ts';
+import { frustrationFeatures } from './frustration.ts';
 import { curvatureFeatures, perpDeviation, points, segmentMoves, velocityFeatures } from './kinematics.ts';
 import { scrollFeatures } from './scroll.ts';
 import { cv, mean, median, r3, std } from './stats.ts';
@@ -334,5 +335,6 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   scrolling();
   collect(scrollFeatures(ev, completeSince));
   rhythm();
+  Object.assign(vector, frustrationFeatures(ev, nowMs));
   return { stats, signals, vector };
 }

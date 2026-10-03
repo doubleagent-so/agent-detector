@@ -14,6 +14,18 @@ Fewer false positives from three shadowed behaviour codes. Signatures `2026.10.1
 - `drive.scroll_jump` needs three unexplained jumps, not two (pages can scroll themselves twice after load), and a
   held mouse button explains scrolling (holding on the scrollbar track).
 
+Frustration cues and content vocabularies. Features only: no new signal codes, no weight changes.
+
+- New `features` keys, present once a visit has a click or a script error: `rage_clicks` (bursts of 3+ clicks
+  within 1 s inside 30 px), `dead_clicks` (clicks on non-interactive content with no navigation, input or scroll in
+  the next second), `error_clicks` (clicks within 1 s after a script error) and `js_errors`.
+- The collector marks `dn` and `ck` events on interactive targets (or their children up to 5 levels deep) with
+  `ia: 1`, and records script errors and unhandled rejections as a new trace kind `er`: a timestamp only, never the
+  message, file or stack. At most one per 500 ms and 100 per page, so an error loop cannot evict input.
+- New exports `PAGE_TYPES` and `ROLES` (with types `PageType` and `Role`): shared vocabularies for labelling a page
+  and its regions.
+- The `createEngine` bundle budget rises to 17.6 KB gzip.
+
 ## 0.3.0 (2026-09-28)
 
 Agent attribution: agent, operator, controller and client resolved separately. Signatures `2026.09.6`.

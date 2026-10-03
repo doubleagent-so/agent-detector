@@ -12,6 +12,7 @@ export type { TraceEvent, TraceKind } from './behavior/trace.ts';
 export { detectPage, validAction, type PageContext } from './profile.ts';
 export { timeline } from './timeline.ts';
 export { scanMarkers } from './env/markers.ts';
+export { PAGE_TYPES, ROLES, type PageType, type Role } from './content.ts';
 export * from './catalog/index.ts';
 
 export * from './conduct.ts';

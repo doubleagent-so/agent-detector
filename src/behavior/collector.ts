@@ -54,6 +54,22 @@ const isCardField = (el: HTMLElement): boolean =>
 
 const fieldSlot = (el: HTMLElement): number => hashCode(`${el.tagName}|${el.id}|${el.getAttribute('name') ?? ''}`);
 
+// Elements a click is expected to act on. `tabindex="-1"` and `contenteditable="false"` mark containers, not controls.
+const INTERACTIVE = 'a,button,input,select,textarea,label,summary,[onclick],[tabindex]:not([tabindex="-1"]),'
+  + '[contenteditable]:not([contenteditable="false"]),[role=button],[role=link],[role=tab],[role=menuitem],'
+  + '[role=checkbox],[role=radio],[role=switch],[role=option]';
+
+/** 1 when the target, or an ancestor up to 5 levels above it, is interactive (feeds dead-click detection). */
+const interactive = (target: EventTarget | null): 1 | undefined => {
+  let el = target as Element | null;
+  for (let level = 0; el && level <= 5; level++, el = el.parentElement) if (el.matches?.(INTERACTIVE)) return 1;
+  return undefined;
+};
+
+// An error loop must not fill the ring and evict real input: one `er` per 500 ms, 100 per page.
+const ERROR_GAP_MS = 500;
+const ERROR_CAP = 100;
+
 export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: Ring; stop: () => void } {
   const ring = new Ring();
   const t0 = performance.now();
@@ -103,7 +119,7 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
         wd = rect.width; ht = rect.height;
       }
     }
-    push(event, { k: 'dn', x: event.clientX, y: event.clientY, pt: ptype(event), ox, oy, w: wd, h: ht, sxm: impossibleScreen(event) || undefined });
+    push(event, { k: 'dn', x: event.clientX, y: event.clientY, pt: ptype(event), ox, oy, w: wd, h: ht, sxm: impossibleScreen(event) || undefined, ia: interactive(el) });
   });
   on(w, 'pointerup', (event: PointerEvent) => {
     const holdMs = event.isTrusted && mousePress && mousePress.id === event.pointerId ? now() - mousePress.at : undefined;
@@ -111,7 +127,7 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
     push(event, { k: 'up', pt: ptype(event), holdMs });
   });
   on(w, 'pointercancel', () => { mousePress = undefined; });
-  on(w, 'click', (event: MouseEvent) => push(event, { k: 'ck', x: event.clientX, y: event.clientY, d: event.detail }));
+  on(w, 'click', (event: MouseEvent) => push(event, { k: 'ck', x: event.clientX, y: event.clientY, d: event.detail, ia: interactive(event.target) }));
   on(w, 'contextmenu', (event: Event) => push(event, { k: 'cm' }));
 
   on(w, 'keydown', (event: KeyboardEvent) => {
@@ -174,6 +190,17 @@ export function startCollector(w: Window, opts: CollectorOptions = {}): { ring: 
   on(w, 'touchend', (event: TouchEvent) => { const tt = event.changedTouches[0]; push(event, { k: 'te', x: tt?.clientX, y: tt?.clientY }); });
 
   on(doc, 'visibilitychange', (event: Event) => push(event, { k: doc.visibilityState === 'hidden' ? 'vh' : 'vv' }));
+
+  // Script errors target the window; a failed image or script load targets its element (a node) and is skipped.
+  let errors = 0, lastError = -1e9;
+  const scriptError = (event: Event) => {
+    const t = at(event);
+    if ((event.target as Node | null)?.nodeType || errors >= ERROR_CAP || t - lastError < ERROR_GAP_MS) return;
+    errors++; lastError = t;
+    push(event, { k: 'er' }, t);
+  };
+  on(w, 'error', scriptError);
+  on(w, 'unhandledrejection', scriptError);
 
   return { ring, stop: () => { clearTimeout(settle); off.forEach((unlisten) => unlisten()); } };
 }
