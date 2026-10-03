@@ -295,6 +295,71 @@ describe('collector', () => {
   });
 });
 
+describe('collector: frustration cues', () => {
+  const press = (target: EventTarget) => {
+    ev('pointerdown', { clientX: 1, clientY: 1, pointerType: 'mouse' }, {}, target);
+    ev('click', { clientX: 1, clientY: 1, detail: 1 }, {}, target);
+    return events().slice(-2);
+  };
+  const html = (markup: string): HTMLElement => {
+    document.body.innerHTML = markup;
+    return document.getElementById('t')!;
+  };
+
+  it('marks presses and clicks on interactive elements and their children', () => {
+    for (const markup of [
+      '<button><span id="t">Buy</span></button>',
+      '<a href="/x" id="t">x</a>',
+      '<label><b id="t">Agree</b></label>',
+      '<div role="tab"><i id="t"></i></div>',
+      '<div onclick="void 0"><p><span id="t"></span></p></div>',
+      '<div tabindex="0" id="t"></div>',
+      '<details><summary id="t">More</summary></details>',
+      '<div contenteditable="true"><p id="t"></p></div>',
+      '<button><i><i><i><i><span id="t"></span></i></i></i></i></button>', // ancestor 5 levels up
+    ]) {
+      const [down, click] = press(html(markup));
+      expect([down.k, down.ia, click.k, click.ia], markup).toEqual(['dn', 1, 'ck', 1]);
+    }
+  });
+
+  it('leaves plain content, deep descendants and skip targets unmarked', () => {
+    for (const markup of [
+      '<div><p id="t">Text</p></div>',
+      '<div role="presentation"><span id="t"></span></div>',
+      '<main tabindex="-1"><p id="t"></p></main>',
+      '<div contenteditable="false"><p id="t"></p></div>',
+      '<button><i><i><i><i><i><span id="t"></span></i></i></i></i></i></button>', // 6 levels up: too far
+    ]) {
+      const [down, click] = press(html(markup));
+      expect([down.ia, click.ia], markup).toEqual([undefined, undefined]);
+    }
+    ev('click', { clientX: 1, clientY: 1, detail: 1 }); // target = window
+    expect(last()).toMatchObject({ k: 'ck' });
+    expect(last().ia).toBeUndefined();
+  });
+
+  it('counts script errors and unhandled rejections without their content', () => {
+    ev('error', { message: 'secret', filename: 'https://x/app.js', error: new Error('secret') });
+    expect(last()).toEqual({ k: 'er', t: expect.any(Number), u: true });
+    clock += 1000;
+    ev('unhandledrejection', { reason: 'secret', isTrusted: true });
+    expect(last()).toEqual({ k: 'er', t: expect.any(Number), u: undefined });
+  });
+
+  it('ignores resource load errors and throttles error storms', () => {
+    document.body.innerHTML = '<img id="i">';
+    ev('error', {}, {}, document.getElementById('i')!); // a broken image, not a script error
+    expect(events().filter((e) => e.k === 'er')).toHaveLength(0);
+    for (let i = 0; i < 300; i++) { ev('error'); clock += 90; } // 100 ms apart for 30 s
+    const errors = events().filter((e) => e.k === 'er');
+    // At most one per 500 ms, and at most 100 per page, so an error loop cannot evict real input from the ring.
+    expect(errors).toHaveLength(60);
+    for (let i = 0; i < 1000; i++) { ev('error'); clock += 490; }
+    expect(events().filter((e) => e.k === 'er')).toHaveLength(100);
+  });
+});
+
 describe('Ring', () => {
   it('caps moves separately so discrete actions survive, and caps total length', () => {
     const r = new Ring(10, 3);

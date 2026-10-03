@@ -2,7 +2,7 @@
 import { build } from 'esbuild';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET_GZIP = 17.1 * 1024; // 17 KB before the drag, S-curve and scroll false-positive fixes (2026-10-03); 15.5 KB after the FP-Agent/BeCAPTCHA detectors (2026-09-27); 15.62 KB before order-independent attribution roles (2026-09-28)
+const BUDGET_GZIP = 17.6 * 1024; // 17.1 KB before visitor-understanding P1 frustration cues, user-approved (2026-10-03); 17 KB before the drag, S-curve and scroll false-positive fixes (2026-10-03); 15.5 KB after the FP-Agent/BeCAPTCHA detectors (2026-09-27); 15.62 KB before order-independent attribution roles (2026-09-28)
 const out = await build({
   stdin: { contents: "import { createEngine } from './src/index.ts'; createEngine(window);", resolveDir: process.cwd(), loader: 'ts' },
   bundle: true, minify: true, format: 'iife', target: 'es2019', platform: 'browser', write: false, logLevel: 'warning',

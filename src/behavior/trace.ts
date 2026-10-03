@@ -22,7 +22,8 @@ export type TraceKind =
   | 'te'  // touch end
   | 'tm'  // touch move
   | 'vh'  // visibility hidden
-  | 'vv'; // visibility visible
+  | 'vv'  // visibility visible
+  | 'er'; // script error or unhandled promise rejection (counted, never its message, file or stack)
 
 export interface TraceEvent {
   k: TraceKind;
@@ -66,6 +67,8 @@ export interface TraceEvent {
   r?: number;
   /** click detail (ck) */
   d?: number;
+  /** target is interactive, or sits within 5 levels inside one (dn/ck): a link, control, label or handler */
+  ia?: 1;
   /** field slot (iv/ch): small hash of tag, id and name to tell fields apart — never the value */
   fs?: number;
   /** document scrollY in px (sc/se); `h` carries the viewport height on the same events */
