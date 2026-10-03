@@ -5,7 +5,7 @@ import * as core from '../src/index.ts';
 // The published surface of @doubleagent-so/agent-detector. Adding a name is a minor release; removing or
 // renaming one is a breaking change (bump the major version and note it in the changelog).
 const EXPORTS = [
-  'CATALOG', 'DEFAULT_AGENT_POLICY', 'DEFAULT_SIGNATURES', 'FINGERPRINTS', 'PAGE_TYPES', 'ROLES', 'SOFT_SIGNAL_REVISIONS',
+  'CATALOG', 'DEFAULT_AGENT_POLICY', 'DEFAULT_SIGNATURES', 'FINGERPRINTS', 'PAGE_TYPES', 'ROLES', 'SITE_KINDS', 'SOFT_SIGNAL_REVISIONS',
   'applyConduct', 'assessConduct', 'catalogEntry', 'catalogRoles', 'createEngine', 'detectPage', 'entryForSignatureAgent',
   'extractBehavior', 'familyOf', 'familyOfOperator', 'fingerprintRoles', 'fuse', 'globalRules', 'ipListSources', 'markerRules',
   'matchUserAgent', 'neutralBehavior', 'operatorForHost', 'parseAgentPolicy', 'recommend', 'resolveRoles', 'scanMarkers',

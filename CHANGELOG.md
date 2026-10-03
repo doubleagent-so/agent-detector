@@ -22,8 +22,10 @@ Frustration cues and content vocabularies. Features only: no new signal codes, n
 - The collector marks `dn` and `ck` events on interactive targets (or their children up to 5 levels deep) with
   `ia: 1`, and records script errors and unhandled rejections as a new trace kind `er`: a timestamp only, never the
   message, file or stack. At most one per 500 ms and 100 per page, so an error loop cannot evict input.
-- New exports `PAGE_TYPES` and `ROLES` (with types `PageType` and `Role`): shared vocabularies for labelling a page
-  and its regions.
+- New exports `SITE_KINDS`, `PAGE_TYPES` and `ROLES` (with types `SiteKind`, `PageType` and `Role`): shared,
+  platform- and industry-neutral vocabularies for labelling a site, a page by its function (`detail`, `listing`,
+  `pricing`, `signup`, `confirmation`, …) and its regions (`item_card`, `primary_cta`, typed calls to action, and
+  commerce roles as specialisations).
 - The `createEngine` bundle budget rises to 17.6 KB gzip.
 
 ## 0.3.0 (2026-09-28)
