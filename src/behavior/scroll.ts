@@ -4,8 +4,11 @@ import type { TraceEvent } from './trace.ts';
 
 interface Burst { t0: number; t1: number; n: number; d: number }
 
-/** Input that explains a scroll: wheel, touch drag, a click (anchor link) or a key (End, PageDown, Space). */
-const DRIVERS = new Set(['wh', 'tm', 'dn', 'kd']);
+/**
+ * Input that explains a scroll: wheel, touch drag, a click (anchor link) or a key (End, PageDown, Space). `up` only
+ * ends a press: a button still held explains scrolling, since holding on the scrollbar track repeats page jumps.
+ */
+const DRIVERS = new Set(['wh', 'tm', 'dn', 'kd', 'up']);
 
 /**
  * Scroll bursts (FP-Agent §5.3.2): agents jump straight to an element or scroll in identical steps;
@@ -26,9 +29,16 @@ function burstsOf(ev: readonly TraceEvent[]): Burst[] {
   return bursts;
 }
 
-/** A single-event burst of half a viewport or more, with no input before it (while the trace is complete). */
-const isJump = (burst: Burst, drivers: readonly TraceEvent[], completeSince: number): boolean =>
-  burst.d >= 0.5 && burst.n <= 1 && burst.t0 >= 1000 && burst.t0 - 400 > completeSince && !drivers.some((x) => x.t <= burst.t0 && x.t >= burst.t0 - 400);
+/**
+ * A single-event burst of half a viewport or more, with no input in the 400 ms before it and no button held (while
+ * the trace is complete).
+ */
+function isJump(burst: Burst, drivers: readonly TraceEvent[], completeSince: number): boolean {
+  if (burst.d < 0.5 || burst.n > 1 || burst.t0 < 1000 || burst.t0 - 400 <= completeSince) return false;
+  const before = drivers.filter((x) => x.t <= burst.t0);
+  const lastPress = before.filter((x) => x.k === 'dn' || x.k === 'up').pop();
+  return lastPress?.k !== 'dn' && !before.some((x) => x.k !== 'up' && x.t >= burst.t0 - 400);
+}
 
 export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number): { signals: Signal[]; vector: Record<string, number> } {
   const bursts = burstsOf(ev);
@@ -45,7 +55,8 @@ export function scrollFeatures(ev: readonly TraceEvent[], completeSince: number)
     scroll_dist_cv: r3(cv(dist)),
     scroll_jump_ratio: r3(jumps / bursts.length),
   };
-  if (jumps >= 2 && jumps / bursts.length >= 0.6) signals.push({ code: 'drive.scroll_jump', group: 'D', target: 'agent', llr: 1.2, detail: `${jumps}/${bursts.length} jumps` });
+  // Three or more: pages can scroll themselves twice after load (scroll restoration, then an anchor or late layout).
+  if (jumps >= 3 && jumps / bursts.length >= 0.6) signals.push({ code: 'drive.scroll_jump', group: 'D', target: 'agent', llr: 1.2, detail: `${jumps}/${bursts.length} jumps` });
 
   const wheeled = bursts.filter((burst) => drivers.some((x) => x.k === 'wh' && x.t >= burst.t0 - 400 && x.t <= burst.t1));
   if (wheeled.length >= 5) {

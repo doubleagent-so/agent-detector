@@ -3,6 +3,17 @@
 Versions follow [semver](https://semver.org). `DEFAULT_SIGNATURES.version` (the model, sent as `sigv`) changes
 separately whenever weights or rules change.
 
+## Unreleased
+
+Fewer false positives from three shadowed behaviour codes. Signatures `2026.10.1`.
+
+- `bio.smooth_synthetic_curve` also counts runs with one turn reversal, so S-shaped (one-inflection) Bézier paths
+  are caught.
+- Mouse kinematics (curvature, speed curve, path shape) use only moves with no button held. Drags on sliders and in
+  games follow the control, so they no longer trip `bio.no_deceleration`.
+- `drive.scroll_jump` needs three unexplained jumps, not two (pages can scroll themselves twice after load), and a
+  held mouse button explains scrolling (holding on the scrollbar track).
+
 ## 0.3.0 (2026-09-28)
 
 Agent attribution: agent, operator, controller and client resolved separately. Signatures `2026.09.6`.

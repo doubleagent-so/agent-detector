@@ -319,7 +319,13 @@ export function extractBehavior(trace: readonly TraceEvent[], nowMs: number, com
   instantFill();
   collect(fieldFeatures(trace, completeSince));
   keystrokes();
-  const mouse = moves.filter((move) => move.pt === 'm');
+  // Pointing kinematics use only moves with no button held: drags (sliders, games) follow the control, not a
+  // pointing motion. A `dn` with no `up` holds to the end of the trace.
+  let held = false;
+  const mouse = ev.filter((event) => {
+    held = event.k === 'dn' || (held && event.k !== 'up');
+    return !held && event.k === 'mv' && event.pt === 'm';
+  });
   const runs = segmentMoves(mouse, 250, 3).map(points);
   collect(curvatureFeatures(runs));
   if (runs.length) collect(velocityFeatures(runs));
