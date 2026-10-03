@@ -94,7 +94,8 @@ export function curvatureFeatures(runs: readonly Pt[][]): { signals: Signal[]; v
     const straightness = Math.hypot(run[run.length - 1].x - run[0].x, run[run.length - 1].y - run[0].y) / path;
     if (run.length >= 15 && path >= 100 && straightness > 0.6 && straightness < 0.99) {
       curved++;
-      if (turnFlips(run) === 0) smooth++;
+      // ≤ 1 reversal: an S-shaped cubic Bézier inflects once and is still generated.
+      if (turnFlips(run) <= 1) smooth++;
     }
   }
   if (!angleMeans.length) return { signals, vector: {} };
@@ -118,8 +119,9 @@ export function velocityFeatures(runs: readonly Pt[][]): { signals: Signal[]; ve
   const signals: Signal[] = [];
   const peakPos: number[] = [], endRatio: number[] = [], peaks: number[] = [];
   for (const run of runs) {
-    const dur = run.length ? run[run.length - 1].t - run[0].t : 0;
-    if (run.length < 10 || dur < 100 || pathLength(run) < 150) continue;
+    if (run.length < 10) continue;
+    const dur = run[run.length - 1].t - run[0].t;
+    if (dur < 100 || pathLength(run) < 150) continue;
     const raw: number[] = [], mid: number[] = [];
     for (let i = 1; i < run.length; i++) {
       const dt = run[i].t - run[i - 1].t;

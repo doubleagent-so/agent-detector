@@ -42,7 +42,7 @@ const policies: Record<Profile, Record<string, ActionPolicy>> = {
 };
 
 export const DEFAULT_SIGNATURES: Signatures = {
-  version: '2026.09.6',
+  version: '2026.10.1',
   priors: {
     generic: { bot: 0.2, agent: 0.03 },
     saas: { bot: 0.15, agent: 0.04 },

@@ -180,4 +180,12 @@ describe('FP-Agent / BeCAPTCHA detectors on generated sessions', () => {
     expect(fires(functionBot(5, 'quadratic', 'constant'), 'bio.no_deceleration')).toBe(true);
     expect(fires(functionBot(5, 'exponential', 'log'), 'bio.no_deceleration')).toBe(true);
   });
+  it('drags at constant speed (sliders, games) are not no_deceleration', () => {
+    const drags = idx(4).flatMap((d): TraceEvent[] => {
+      const start = 1000 + d * 2000;
+      const moves = range(30, (i) => ({ k: 'mv', t: start + 10 + i * 16.7, x: i * 14, y: 100 + d * 60, pt: 'm' }));
+      return [{ k: 'dn', t: start, pt: 'm', x: 0, y: 100 + d * 60 }, ...moves, { k: 'up', t: start + 520 }];
+    });
+    expect(fires(drags, 'bio.no_deceleration')).toBe(false);
+  });
 });

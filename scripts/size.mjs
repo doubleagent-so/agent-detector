@@ -2,13 +2,13 @@
 import { build } from 'esbuild';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET_GZIP = 17 * 1024; // 15.5 KB after the FP-Agent/BeCAPTCHA detectors (2026-09-27); 15.62 KB before order-independent attribution roles (2026-09-28)
+const BUDGET_GZIP = 17.1 * 1024; // 17 KB before the drag, S-curve and scroll false-positive fixes (2026-10-03); 15.5 KB after the FP-Agent/BeCAPTCHA detectors (2026-09-27); 15.62 KB before order-independent attribution roles (2026-09-28)
 const out = await build({
   stdin: { contents: "import { createEngine } from './src/index.ts'; createEngine(window);", resolveDir: process.cwd(), loader: 'ts' },
   bundle: true, minify: true, format: 'iife', target: 'es2019', platform: 'browser', write: false, logLevel: 'warning',
 });
 const gz = gzipSync(out.outputFiles[0].contents, { level: 9 }).length;
-console.log(`createEngine bundle: ${(gz / 1024).toFixed(2)} KB gzip (budget ${(BUDGET_GZIP / 1024).toFixed(0)} KB)`);
+console.log(`createEngine bundle: ${(gz / 1024).toFixed(2)} KB gzip (budget ${(BUDGET_GZIP / 1024).toFixed(1)} KB)`);
 if (gz > BUDGET_GZIP) {
   console.error('OVER BUDGET');
   process.exitCode = 1;

@@ -12,9 +12,18 @@ const codes = (ev: TraceEvent[], since = 0) => scrollFeatures(ev, since).signals
 
 describe('scrollFeatures', () => {
   it('flags repeated instant jumps with no input', () => {
-    const ev = [...burst(1500, 0), ...burst(3000, 2400), ...burst(6000, 4800)];
+    const ev = [...burst(1500, 0), ...burst(3000, 2400), ...burst(6000, 4800), ...burst(9000, 7200)];
     expect(codes(ev)).toContain('drive.scroll_jump');
     expect(scrollFeatures(ev, 0).vector.scroll_jump_ratio).toBe(1);
+  });
+  it('does not flag a page that scrolls itself twice after load', () => {
+    expect(codes([...burst(1500, 0), ...burst(3000, 2400), ...burst(6000, 4800)])).not.toContain('drive.scroll_jump');
+  });
+  it('does not flag holding the mouse on the scrollbar track', () => {
+    const held = [{ k: 'dn', t: 1400, pt: 'm' } as TraceEvent, ...burst(1500, 0), ...burst(3000, 2400), ...burst(6000, 4800), ...burst(9000, 7200)];
+    expect(codes(held)).not.toContain('drive.scroll_jump');
+    const released = [{ k: 'dn', t: 1400, pt: 'm' } as TraceEvent, { k: 'up', t: 1450, pt: 'm' } as TraceEvent, ...held.slice(1)];
+    expect(codes(released)).toContain('drive.scroll_jump');
   });
   it('does not flag a single find-in-page jump among normal scrolling', () => {
     const ev = [...burst(1500, 0), ...burst(3000, 400, 6, 0), ...burst(6000, 3000), ...burst(9000, 3400, 6, 3000), ...burst(12000, 3800, 6, 3400)];

@@ -2,7 +2,7 @@
 
 # Signal codes
 
-Every signal the engine emits, from `DEFAULT_SIGNATURES` 2026.09.6. `llr` is the natural-log likelihood ratio: positive is evidence for automation, negative is evidence for a human. Some weights are expressions evaluated at run time (for example `* soft`, which shrinks environment evidence in privacy browsers). **Hard** signals short-circuit the verdict to ≥ 0.99 non-human. When the only hard evidence is an automation tool (a controller), it is a bot unless strong driving with think-then-act rhythm makes it an agent. See [How it works](how-it-works.md).
+Every signal the engine emits, from `DEFAULT_SIGNATURES` 2026.10.1. `llr` is the natural-log likelihood ratio: positive is evidence for automation, negative is evidence for a human. Some weights are expressions evaluated at run time (for example `* soft`, which shrinks environment evidence in privacy browsers). **Hard** signals short-circuit the verdict to ≥ 0.99 non-human. When the only hard evidence is an automation tool (a controller), it is a bot unless strong driving with think-then-act rhythm makes it an agent. See [How it works](how-it-works.md).
 
 Codes marked **(shadow)** are listed in `DEFAULT_SIGNATURES.shadow`: reported, but weighted 0 (never hard) until promoted.
 

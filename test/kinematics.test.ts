@@ -45,6 +45,14 @@ describe('curvatureFeatures', () => {
     expect(f.signals.map((s) => s.code)).toContain('bio.smooth_synthetic_curve');
     expect(f.vector.curv_angle_mean).toBeGreaterThan(170);
   });
+  it('flags S-shaped Bézier curves (one inflection)', () => {
+    const sCurve = (seed: number): Pt[] => Array.from({ length: 30 }, (_, i) => {
+      const u = i / 29, v = 1 - u, lift = 40 + seed * 5;
+      return P(400 * (3 * v * v * u * 0.33 + 3 * v * u * u * 0.67 + u ** 3), 3 * v * v * u * lift - 3 * v * u * u * lift, i * 16.7);
+    });
+    expect(turnFlips(sCurve(1))).toBe(1);
+    expect(curvatureFeatures([1, 2, 3, 4, 5].map(sCurve)).signals.map((s) => s.code)).toContain('bio.smooth_synthetic_curve');
+  });
   it('does not flag jittery human curves', () => {
     expect(curvatureFeatures([1, 2, 3, 4, 5].map((s) => arc(s, 1.5))).signals).toEqual([]);
   });
