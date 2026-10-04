@@ -3,7 +3,7 @@
 Versions follow [semver](https://semver.org). `DEFAULT_SIGNATURES.version` (the model, sent as `sigv`) changes
 separately whenever weights or rules change.
 
-## Unreleased
+## 0.4.0 (2026-10-04)
 
 Corroboration families for servers, and the guard state on the verdict. No change to any default verdict, weight or
 signal code.
