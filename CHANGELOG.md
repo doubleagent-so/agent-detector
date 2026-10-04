@@ -5,6 +5,18 @@ separately whenever weights or rules change.
 
 ## Unreleased
 
+Corroboration families for servers, and the guard state on the verdict. No change to any default verdict, weight or
+signal code.
+
+- Verdicts carry `evidence: 'sufficient' | 'insufficient'`. `insufficient` means the corroboration guard turned a
+  non-human leaning into a low-confidence human one (the `evidence.insufficient_automation` reason): unverified, not
+  verified human. Additive; verdicts from older engines lack it.
+- `FuseInput.families` overrides the code → family map the guard counts. It defaults to the newly exported
+  `BEHAVIOR_FAMILIES`.
+- New export `FAMILIES_C2B`, a candidate map where `drive.click_without_approach` and `rhythm.think_then_act` join
+  `geometry`. Servers fuse with it next to the default to measure the change before adopting it. `createEngine`
+  does not import it, so it stays out of the browser bundle.
+
 Fewer false positives from three shadowed behaviour codes. Signatures `2026.10.1`.
 
 - `bio.smooth_synthetic_curve` also counts runs with one turn reversal, so S-shaped (one-inflection) Bézier paths

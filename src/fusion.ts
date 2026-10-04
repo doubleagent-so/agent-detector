@@ -35,6 +35,9 @@ export interface FuseInput {
   judge?: string;
   /** Catalog for attribution. Defaults to the fingerprints the browser bundle carries; servers pass `catalogRoles`. */
   catalog?: RoleCatalog;
+  /** Corroboration family per signal code for the insufficient-evidence guard. Defaults to `BEHAVIOR_FAMILIES`;
+   * servers pass a candidate map (`FAMILIES_C2B`) to compute a shadow verdict. */
+  families?: Readonly<Record<string, string>>;
 }
 
 const logit = (probability: number) => Math.log(probability / (1 - probability));
@@ -103,7 +106,7 @@ export function fuse(inp: FuseInput): Verdict {
   // Three-class API: when positive observations are not sufficiently specific, retain a
   // low-confidence human leaning, not a bot/agent accusation from priors or environment.
   // These are guarded heuristic probabilities, not measured population calibration.
-  const corroborated = hard.length > 0 || hasAutomationEvidence(signals, rel);
+  const corroborated = hard.length > 0 || hasAutomationEvidence(signals, rel, inp.families);
   const insufficient = !corroborated && probability.human < 0.5;
   if (insufficient) {
     const remaining = probability.bot + probability.agent;
@@ -132,6 +135,7 @@ export function fuse(inp: FuseInput): Verdict {
     class: cls,
     probability: { human: r3(probability.human), bot: r3(probability.bot), agent: r3(probability.agent) },
     confidence,
+    evidence: insufficient ? 'insufficient' : 'sufficient',
     agent: cls === 'agent' || verified ? agentOf(roles, catalog, signals, hard, verified) : undefined,
     reasons,
     scores: { automation: r3(nonHuman), environment: r3(envScore), driving: r3(drivingScore) },

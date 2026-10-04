@@ -64,6 +64,11 @@ export interface Verdict {
   /** 0..1 — how much evidence the verdict rests on (not the same as probability). */
   confidence: number;
   /**
+   * `insufficient` when the corroboration guard rewrote a non-human leaning into a low-confidence human one
+   * (`evidence.insufficient_automation`): "unverified", not "verified human". Absent on verdicts from older engines.
+   */
+  evidence?: 'sufficient' | 'insufficient';
+  /**
    * `id` is the resolved agent (a catalog id or declared name, never an automation tool); `family` is
    * the legacy coarse label. `operator` and `controller` are the other resolved roles (attribution.ts).
    */

@@ -20,8 +20,9 @@ export function normalizeSoftSignal(signal: Signal): Signal {
 /** Corroboration families, not counts of correlated reason codes. A missing input is
  * not enough: real users paste, dictate, pause, use accessibility tools and scroll by script.
  * Kinematics/hold/typing rules within one family cannot corroborate one another.
+ * `fuse()` uses this map unless `FuseInput.families` names another (servers comparing a candidate rule).
  */
-const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
+export const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
   'drive.click_dead_centre': 'geometry',
   'bio.linear_mouse_paths': 'geometry',
   'bio.smooth_synthetic_curve': 'geometry',
@@ -39,12 +40,16 @@ const BEHAVIOR_FAMILIES: Readonly<Record<string, string>> = {
   'drive.scroll_jump': 'scroll',
   'drive.uniform_scroll_bursts': 'scroll',
 };
-export function hasAutomationEvidence(signals: readonly Signal[], reliability: Record<Group, number>): boolean {
+export function hasAutomationEvidence(
+  signals: readonly Signal[],
+  reliability: Record<Group, number>,
+  familyOfCode: Readonly<Record<string, string>> = BEHAVIOR_FAMILIES,
+): boolean {
   const families = new Set<string>();
   for (const signal of signals) {
     if (signal.llr <= 0 || reliability[signal.group] <= 0) continue;
     if (signal.hard || (signal.group === 'A' && signal.llr >= 3) || ((signal.group === 'H' || signal.group === 'J') && signal.llr >= 3)) return true;
-    const family = BEHAVIOR_FAMILIES[signal.code];
+    const family = familyOfCode[signal.code];
     if (family && signal.llr * reliability[signal.group] >= 1) families.add(family);
   }
   return families.size >= 2;
