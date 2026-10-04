@@ -4,6 +4,7 @@ import { Ring, type TraceEvent } from '../src/behavior/trace.ts';
 import { fuse } from '../src/fusion.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
 import { SOFT_SIGNAL_REVISIONS } from '../src/evidence.ts';
+import { FAMILIES_C2B } from '../src/families.ts';
 import type { Profile, Signal } from '../src/types.ts';
 import { aiAgent, humanDesktop, humanMobile, scriptedBot } from './traces.ts';
 
@@ -38,6 +39,29 @@ describe('human false-positive regression scenarios', () => {
     );
     expect(v.class).toBe('human');
     expect(v.reasons).toContainEqual(expect.objectContaining({ code: 'evidence.insufficient_automation' }));
+  });
+
+  describe('C2b families: missing approach and motionless pauses never corroborate each other', () => {
+    const observed = (signals: Signal[]) =>
+      fuse({
+        signals, profile: 'generic', action: 'pageview', sig: DEFAULT_SIGNATURES, behaviorReliability: 1, driveReliability: 1,
+        sessionId: 'fp', families: FAMILIES_C2B,
+      });
+    const noApproach: Signal = { code: 'drive.click_without_approach', group: 'D', target: 'agent', llr: 2.5 };
+    const pauses: Signal = { code: 'rhythm.think_then_act', group: 'R', target: 'agent', llr: 2.2 };
+    const deadCentre: Signal = { code: 'drive.click_dead_centre', group: 'D', target: 'agent', llr: 2 };
+
+    it.each([
+      ['no approach and pauses (voice control, reading)', [noApproach, pauses]],
+      ['no approach and dead-centre clicks (one geometry family)', [noApproach, deadCentre]],
+      ['pauses and dead-centre clicks (one geometry family)', [pauses, deadCentre]],
+      ['pauses alone', [pauses]],
+      ['no approach alone', [noApproach]],
+    ])('stays human-leaning for %s', (_name, signals) => {
+      const v = observed(signals as Signal[]);
+      expect(v.class).toBe('human');
+      expect(v.evidence).toBe('insufficient');
+    });
   });
 
   it('does not mistake reading pauses, keyboard navigation and page scrolling for an agent', () => {

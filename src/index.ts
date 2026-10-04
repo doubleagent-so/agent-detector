@@ -17,4 +17,5 @@ export * from './catalog/index.ts';
 
 export * from './conduct.ts';
 
-export { SOFT_SIGNAL_REVISIONS } from './evidence.ts';
+export { BEHAVIOR_FAMILIES, SOFT_SIGNAL_REVISIONS } from './evidence.ts';
+export { FAMILIES_C2B } from './families.ts';
