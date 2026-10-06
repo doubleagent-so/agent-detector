@@ -61,6 +61,7 @@ npm run example        # live verdict page at http://127.0.0.1:8123
 ## Releases
 
 Maintainers bump `version` in `package.json`, update `DEFAULT_SIGNATURES.version` when weights or rules change, and
-push a `v<version>` tag. The release workflow tests, builds and publishes `dist/` to npm with provenance.
+push a `v<version>` tag. The release workflow checks the tag matches `package.json`, tests, builds and publishes
+`dist/` to npm with provenance, then creates the GitHub Release with that version's `CHANGELOG.md` section as its notes.
 
 Evasion techniques go to [Security](SECURITY.md), not public issues.

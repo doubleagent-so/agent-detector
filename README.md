@@ -1,5 +1,9 @@
 # @doubleagent-so/agent-detector
 
+**[Live demo](https://lab.doubleagent.dev)** · [Docs](https://doubleagent.so/docs/agent-detector/) · [Website](https://doubleagent.so) ·
+[npm](https://www.npmjs.com/package/@doubleagent-so/agent-detector) · [Changelog](https://github.com/doubleagent-so/agent-detector/blob/main/CHANGELOG.md) · [Report an issue](https://github.com/doubleagent-so/agent-detector/issues)
+
+[![npm](https://img.shields.io/npm/v/@doubleagent-so/agent-detector.svg)](https://www.npmjs.com/package/@doubleagent-so/agent-detector)
 [![CI](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Types](https://img.shields.io/badge/types-included-3178c6.svg)](src/types.ts)
@@ -11,7 +15,7 @@ The detection engine behind **[Double Agent](https://doubleagent.so)**. It class
 **bot** or **AI agent** (Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely
 inside the page. No dependencies, no network requests: you decide what to do with the verdict.
 
-**[doubleagent.so/docs/agent-detector](https://doubleagent.so/docs/agent-detector/)** · **[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
+**[Docs](docs/README.md)** · **[Getting started](docs/getting-started.md)** · **[How it works](docs/how-it-works.md)** ·
 **[API](docs/api.md)** · **[Extending](docs/extending.md)** · **[Signals](docs/signals.md)** · **[Catalog](docs/catalog.md)** ·
 **[Contributing](CONTRIBUTING.md)**
 
