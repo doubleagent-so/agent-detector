@@ -9,9 +9,8 @@
 <p align="center">Classify a browser session as human, bot or AI agent, entirely inside the page.</p>
 
 <p align="center">
-  <strong><a href="https://lab.doubleagent.dev">Live demo</a></strong> ·
+  <strong><a href="https://doubleagent.so">Website</a></strong> ·
   <a href="https://doubleagent.so/docs/agent-detector/">Docs</a> ·
-  <a href="https://doubleagent.so">Website</a> ·
   <a href="https://www.npmjs.com/package/@doubleagent-so/agent-detector">npm</a> ·
   <a href="https://github.com/doubleagent-so/agent-detector/blob/main/CHANGELOG.md">Changelog</a> ·
   <a href="https://github.com/doubleagent-so/agent-detector/issues">Report an issue</a> ·

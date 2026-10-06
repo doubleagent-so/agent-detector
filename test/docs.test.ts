@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { collectSignals, DOCS } from '../scripts/docs.ts';
+import { collectSignals, DOCS, tableCell } from '../scripts/docs.ts';
 import { DEFAULT_SIGNATURES } from '../src/signatures.ts';
 
 describe('generated docs', () => {
@@ -22,5 +22,11 @@ describe('generated docs', () => {
     for (const code of ['auto.webdriver', 'env.webgl_software', 'drive.cdp_screen_coords', 'marker.claude_active', 'global.playwright']) {
       expect(listed.has(code), code).toBe(true);
     }
+  });
+
+  it('escapes backslashes before pipes in table cells, so a trailing backslash cannot unescape the pipe', () => {
+    expect(tableCell('a|b')).toBe('a\\|b');
+    expect(tableCell('a\\|b')).toBe('a\\\\\\|b');
+    expect(tableCell('c:\\x')).toBe('c:\\\\x');
   });
 });

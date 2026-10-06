@@ -51,7 +51,8 @@ export function collectSignals(): Row[] {
   return [...rows.values()].sort((a, b) => a.code.localeCompare(b.code));
 }
 
-const cell = (s: string) => s.replace(/\|/g, '\\|');
+/** Markdown table cell text: backslashes first, so an input `\\|` cannot turn the escaped pipe back into a column break. */
+export const tableCell = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 
 export function renderSignals(): string {
   const rows = collectSignals();
@@ -68,7 +69,7 @@ export function renderSignals(): string {
     out += '| Code | Target | llr | Hard | Defined in |\n|---|---|---|---|---|\n';
     for (const r of inGroup) {
       const files = [...r.files].map((f) => `[${f.replace(/^src\//, '')}](../${f})`).join(', ');
-      out += `| \`${r.code}\`${shadow.has(r.code) ? ' (shadow)' : ''} | ${r.target} | ${[...r.llr].map((l) => `\`${cell(l)}\``).join(', ')} | ${r.hard ? 'yes' : ''} | ${files} |\n`;
+      out += `| \`${r.code}\`${shadow.has(r.code) ? ' (shadow)' : ''} | ${r.target} | ${[...r.llr].map((l) => `\`${tableCell(l)}\``).join(', ')} | ${r.hard ? 'yes' : ''} | ${files} |\n`;
     }
   }
   return out;
@@ -92,7 +93,7 @@ export function renderCatalog(): string {
       e.identify.markers?.length && 'DOM markers',
       e.identify.globals?.length && 'globals',
     ].filter(Boolean).join(', ');
-    out += `| [${cell(e.name)}](${e.source}) | \`${e.id}\` | ${e.class} | ${e.surface} | ${e.verifiable} | ${how} |\n`;
+    out += `| [${tableCell(e.name)}](${e.source}) | \`${e.id}\` | ${e.class} | ${e.surface} | ${e.verifiable} | ${how} |\n`;
   }
   return out;
 }
