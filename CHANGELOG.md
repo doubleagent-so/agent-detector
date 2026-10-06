@@ -3,6 +3,15 @@
 Versions follow [semver](https://semver.org). `DEFAULT_SIGNATURES.version` (the model, sent as `sigv`) changes
 separately whenever weights or rules change.
 
+## 0.4.1 (2026-10-06)
+
+Docs, tooling and release housekeeping. The detection engine, signal codes, weights and signatures are unchanged.
+
+- README: shared Double Agent header, top links, footer and logo, with links on doubleagent.so.
+- Releases: the release workflow now also creates the GitHub Release, with this changelog section as its notes.
+- The docs script escapes backslashes in generated table cells (CodeQL).
+- Dev dependency security update: source-map-js 1.2.2 (GHSA-68fv-2mgg-jv7q).
+
 ## 0.4.0 (2026-10-04)
 
 Corroboration families for servers, and the guard state on the verdict. No change to any default verdict, weight or
