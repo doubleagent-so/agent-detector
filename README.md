@@ -1,15 +1,32 @@
-# @doubleagent-so/agent-detector
+<p align="center">
+  <img src="https://raw.githubusercontent.com/doubleagent-so/agent-detector/main/assets/doubleagent.svg" width="80" height="80" alt="Double Agent">
+</p>
 
-**[Live demo](https://lab.doubleagent.dev)** · [Docs](https://doubleagent.so/docs/agent-detector/) · [Website](https://doubleagent.so) ·
-[npm](https://www.npmjs.com/package/@doubleagent-so/agent-detector) · [Changelog](https://github.com/doubleagent-so/agent-detector/blob/main/CHANGELOG.md) · [Report an issue](https://github.com/doubleagent-so/agent-detector/issues)
+<h1 align="center">Agent Detector</h1>
 
-[![npm](https://img.shields.io/npm/v/@doubleagent-so/agent-detector.svg)](https://www.npmjs.com/package/@doubleagent-so/agent-detector)
-[![CI](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Types](https://img.shields.io/badge/types-included-3178c6.svg)](src/types.ts)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
-[![Size](https://img.shields.io/badge/engine-%E2%89%A416%20KB%20gzip-brightgreen.svg)](scripts/size.mjs)
-[![Catalog](https://img.shields.io/badge/catalog-226%20bots%20%26%20agents-8a2be2.svg)](docs/catalog.md)
+<p align="center"><code>@doubleagent-so/agent-detector</code></p>
+
+<p align="center">Classify a browser session as human, bot or AI agent, entirely inside the page.</p>
+
+<p align="center">
+  <strong><a href="https://lab.doubleagent.dev">Live demo</a></strong> ·
+  <a href="https://doubleagent.so/docs/agent-detector/">Docs</a> ·
+  <a href="https://doubleagent.so">Website</a> ·
+  <a href="https://www.npmjs.com/package/@doubleagent-so/agent-detector">npm</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/CHANGELOG.md">Changelog</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/issues">Report an issue</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/LICENSE">MIT license</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@doubleagent-so/agent-detector"><img src="https://img.shields.io/npm/v/@doubleagent-so/agent-detector.svg" alt="npm"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml"><img src="https://github.com/doubleagent-so/agent-detector/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/src/types.ts"><img src="https://img.shields.io/badge/types-included-3178c6.svg" alt="Types"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/package.json"><img src="https://img.shields.io/badge/dependencies-0-brightgreen.svg" alt="Dependencies"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/scripts/size.mjs"><img src="https://img.shields.io/badge/engine-%E2%89%A416%20KB%20gzip-brightgreen.svg" alt="Size"></a>
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/docs/catalog.md"><img src="https://img.shields.io/badge/catalog-226%20bots%20%26%20agents-8a2be2.svg" alt="Catalog"></a>
+</p>
 
 The detection engine behind **[Double Agent](https://doubleagent.so)**. It classifies a browser session as **human**,
 **bot** or **AI agent** (Claude in Chrome, ChatGPT Atlas, Comet, Browser Use, Playwright, headless Chrome…) entirely
@@ -93,6 +110,18 @@ Detection gets better with more eyes. Good places to start:
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first: tests first, false positives are the worst bug, weights need evidence.
 Report evasions privately ([SECURITY.md](SECURITY.md)), not in a public issue.
 
-## License
+---
 
-[MIT](LICENSE) © Double Agent
+## Support
+
+- Questions and bugs: [open an issue](https://github.com/doubleagent-so/agent-detector/issues/new/choose).
+- Private account or billing questions: [support@doubleagent.so](mailto:support@doubleagent.so). Never post secret keys or session tokens in a public issue.
+- Security problems: report them privately as described in [SECURITY.md](https://github.com/doubleagent-so/agent-detector/blob/main/SECURITY.md).
+
+<p align="center">
+  Maintained by <a href="https://doubleagent.so">Double Agent</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/CONTRIBUTING.md">Contributing</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/SECURITY.md">Security</a> ·
+  <a href="https://github.com/doubleagent-so/agent-detector/blob/main/LICENSE">MIT license</a>
+</p>
